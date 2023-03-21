@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: cb2ca9a5c0b9d3843b98d806231fb0c1
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - _simulationAreaBoxPrefab: {fileID: 8929732903810020364, guid: 9169ac7e986395047bafd2a3446b3db6,
+      type: 3}
+  executionOrder: -500
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

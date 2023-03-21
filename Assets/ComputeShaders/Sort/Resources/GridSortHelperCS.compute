@@ -1,0 +1,11 @@
+﻿#pragma kernel MakeObjectCellIDPair
+#pragma kernel ClearGridObjectID
+#pragma kernel SetGridObjectID
+#pragma kernel RearrangeObject
+
+#include "../../PIC/PICParticle.hlsl"
+
+#define Object Particle
+#define Pos position
+
+#include "../GridSortHelper.hlsl"

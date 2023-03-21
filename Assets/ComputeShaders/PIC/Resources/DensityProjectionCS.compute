@@ -1,0 +1,197 @@
+﻿#pragma kernel BuildGoastWeight
+#pragma kernel InitBuffer
+#pragma kernel InterlockedAddWeight
+#pragma kernel CalcGridWeight
+#pragma kernel Project
+#pragma kernel CalcPositionModify
+#pragma kernel UpdatePosition
+
+#define USE_LINEAR_KERNEL
+
+#include "../Common.hlsl"
+#include "../GridParamsSampling.hlsl"
+
+inline uint ConvertFloat2UInt(float v)
+{
+    return round(v * asfloat(0x4b800000)); // 2^24
+}
+
+inline float ConvertUInt2Float(uint v)
+{
+    return v * asfloat(0x33800000); // 2^-24
+}
+
+StructuredBuffer<Particle> _ParticleBufferRead;
+RWStructuredBuffer<Particle> _ParticleBufferRW;
+
+StructuredBuffer<uint> _GridTypeBufferRead;
+RWStructuredBuffer<uint> _GridTypeBufferWrite;
+
+StructuredBuffer<float> _GridWeightBufferRead;
+RWStructuredBuffer<float> _GridWeightBufferWrite;
+StructuredBuffer<float> _GridGoastWeightBufferRead;
+RWStructuredBuffer<float> _GridGoastWeightBufferWrite;
+StructuredBuffer<uint> _GridUIntWeightBufferRead;
+RWStructuredBuffer<uint> _GridUIntWeightBufferWrite;
+
+StructuredBuffer<float> _GridDensityPressureBufferRead;
+RWStructuredBuffer<float> _GridDensityPressureBufferWrite;
+
+StructuredBuffer<float3> _GridPositionModifyBufferRead;
+RWStructuredBuffer<float3> _GridPositionModifyBufferWrite;
+
+static const int gridRange[6] = { -1, 1, -1, 1, -1, 1 };
+
+[numthreads(128, 1, 1)]
+void BuildGoastWeight(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    const bool3 edge = c_index % (_GridSize - 1) == 0;
+    const int edge_count = (int)edge.x + (int)edge.y + (int)edge.z;
+
+    float goast_weight = 0;
+    if (edge_count == 1) goast_weight = 1.0f;
+    if (edge_count == 2) goast_weight = 1.875f;
+    if (edge_count == 3) goast_weight = 2.640625f;
+
+    _GridGoastWeightBufferWrite[c_id] = goast_weight;
+}
+
+[numthreads(128, 1, 1)]
+void InitBuffer(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    _GridTypeBufferWrite[c_id] = 0;
+    _GridUIntWeightBufferWrite[c_id] = 0;
+}
+
+[numthreads(128,1,1)]
+void InterlockedAddWeight(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint p_id = id.x;
+
+    const float3 p_pos = _ParticleBufferRead[p_id].position;
+
+    const uint3 c_index = PosToCellIndex(p_pos);
+    const uint c_id = CellIndexToCellID(c_index);
+
+    InterlockedMax(_GridTypeBufferWrite[c_id], GT_FLUID);
+
+    FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, gridRange)
+    {
+        const float weight = GetWeight(p_pos, CellIndexToCellPos(nc_index), _GridInvSpacing);
+        InterlockedAdd(_GridUIntWeightBufferWrite[nc_id], ConvertFloat2UInt(weight));
+    }
+    FOR_EACH_NEIGHBOR_CELL_END
+}
+
+[numthreads(128,1,1)]
+void CalcGridWeight(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float sum_weight = 0;
+
+    if (_GridTypeBufferRead[c_id] == GT_FLUID)
+    {
+        bool neighbor_air = false;
+        FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, gridRange)
+        {
+            if (_GridTypeBufferRead[nc_id] == GT_AIR)
+                neighbor_air = true;
+        }
+        FOR_EACH_NEIGHBOR_CELL_END
+
+        if (!neighbor_air)
+        {
+            sum_weight = _GridGoastWeightBufferRead[c_id];
+            sum_weight += ConvertUInt2Float(_GridUIntWeightBufferRead[c_id]);
+            
+            sum_weight *= InvAverageWeight;
+            sum_weight = clamp(sum_weight, 0.5f, 1.5f);
+            sum_weight -= 1.0f;
+        }
+    }
+
+    _GridWeightBufferWrite[c_id] = sum_weight;
+}
+
+[numthreads(128, 1, 1)]
+void Project(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float pressure = 0;
+
+    if (_GridTypeBufferRead[c_id] == GT_FLUID)
+    {
+        // project using Jacobi interations
+        const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+        const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
+        const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+        const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
+        const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+        const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
+
+        pressure += _DensityProjectionParameter1.x * (_GridDensityPressureBufferRead[c_id_xp] + _GridDensityPressureBufferRead[c_id_xn]);
+        pressure += _DensityProjectionParameter1.y * (_GridDensityPressureBufferRead[c_id_yp] + _GridDensityPressureBufferRead[c_id_yn]);
+        pressure += _DensityProjectionParameter1.z * (_GridDensityPressureBufferRead[c_id_zp] + _GridDensityPressureBufferRead[c_id_zn]);
+        pressure += _DensityProjectionParameter1.w * _GridWeightBufferRead[c_id];
+    }
+
+    _GridDensityPressureBufferWrite[c_id] = pressure;
+}
+
+[numthreads(128, 1, 1)]
+void CalcPositionModify(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+
+    const float p = _GridDensityPressureBufferRead[c_id];
+
+    float3 del_pos;
+    del_pos.x = _DensityProjectionParameter2.x * (p - _GridDensityPressureBufferRead[c_id_xp]);
+    del_pos.y = _DensityProjectionParameter2.y * (p - _GridDensityPressureBufferRead[c_id_yp]);
+    del_pos.z = _DensityProjectionParameter2.z * (p - _GridDensityPressureBufferRead[c_id_zp]);
+
+    _GridPositionModifyBufferWrite[c_id] = del_pos;
+}
+
+[numthreads(128, 1, 1)]
+void UpdatePosition(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint p_id = id.x;
+
+    Particle p = _ParticleBufferRW[p_id];
+
+    p.position += SampleGridParams(p.position, _GridPositionModifyBufferRead);
+
+    CLAMP_POSITION(p.position);
+
+    _ParticleBufferRW[p_id] = p;
+}

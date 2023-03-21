@@ -1,0 +1,53 @@
+﻿#pragma kernel Advect
+
+#pragma multi_compile _ USE_RK1 USE_RK2 USE_RK3
+#pragma multi_compile _ USE_LINEAR_KERNEL USE_QUADRATIC_KERNEL
+
+#include "../Common.hlsl"
+#include "../GridParamsSampling.hlsl"
+
+RWStructuredBuffer<Particle> _ParticleBufferRW;
+
+StructuredBuffer<float3> _GridVelocityBufferRead;
+
+[numthreads(128, 1, 1)]
+void Advect(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint p_id = id.x;
+
+    Particle p = _ParticleBufferRW[p_id];
+
+    // https://en.wikipedia.org/wiki/List_of_Runge-Kutta_methods
+
+#if defined(USE_RK1)
+    // advect using RK1 (Forward Euler)
+    const float3 k1 = SampleGridParams(p.position, _GridVelocityBufferRead);
+    const float3 velocity = 1.0f * k1;
+
+#elif defined(USE_RK2)
+    // advect using RK2 (Explicit midpoint method)
+    const float3 k1 = SampleGridParams(p.position, _GridVelocityBufferRead);
+    const float3 k2 = SampleGridParams(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
+    const float3 velocity = 0.0f * k1 + 1.0f * k2;
+
+#elif defined(USE_RK3)
+    // advect using RK3 (Ralston's third-order method)
+    const float3 k1 = SampleGridParams(p.position, _GridVelocityBufferRead);
+    const float3 k2 = SampleGridParams(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
+    const float3 k3 = SampleGridParams(p.position + 0.75f * _DeltaTime * k2, _GridVelocityBufferRead);
+    const float3 velocity = 2.0f / 9.0f * k1 + 1.0f / 3.0f * k2 + 4.0f / 9.0f * k3;
+
+#else
+    // default
+    const float3 velocity = (float3)0;
+
+#endif
+
+    p.position += velocity * _DeltaTime;
+
+    CLAMP_POSITION(p.position);
+
+    _ParticleBufferRW[p_id] = p;
+}

@@ -1,0 +1,62 @@
+﻿#pragma kernel Diffuse
+#pragma kernel UpdateVelocity
+
+#include "../Common.hlsl"
+
+StructuredBuffer<uint> _GridTypeBufferRead;
+
+StructuredBuffer<float3> _GridVelocityBufferRead;
+RWStructuredBuffer<float3> _GridVelocityBufferWrite;
+
+StructuredBuffer<float3> _GridDiffusionBufferRead;
+RWStructuredBuffer<float3> _GridDiffusionBufferWrite;
+
+[numthreads(128, 1, 1)]
+void Diffuse(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+    
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float3 velocity = (float3)0;
+
+    // diffuse using Jacobi interations
+    const int3 c_index_xn = c_index + int3(1, 0, 0);
+    const int3 c_index_yn = c_index + int3(0, 1, 0);
+    const int3 c_index_zn = c_index + int3(0, 0, 1);
+    
+    const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_xn = CellIndexToCellID(c_index_xn);
+    const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_yn = CellIndexToCellID(c_index_yn);
+    const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+    const uint c_id_zn = CellIndexToCellID(c_index_zn);
+
+    velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xp] == GT_FLUID ? c_id_xp : c_id];
+    velocity += _DiffusionParameter.x * (c_index_xn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xn] == GT_FLUID ? c_id_xn : c_id] : 0.0f);
+    velocity += _DiffusionParameter.y * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_yp] == GT_FLUID ? c_id_yp : c_id];
+    velocity += _DiffusionParameter.y * (c_index_yn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_yn] == GT_FLUID ? c_id_yn : c_id] : 0.0f);
+    velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zp] == GT_FLUID ? c_id_zp : c_id];
+    velocity += _DiffusionParameter.z * (c_index_zn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zn] == GT_FLUID ? c_id_zn : c_id] : 0.0f);
+    velocity += _DiffusionParameter.w * _GridVelocityBufferRead[c_id];
+
+    ENFORCE_BOUNDARY_CONDITION(c_index, velocity);
+
+    _GridDiffusionBufferWrite[c_id] = velocity;
+}
+
+[numthreads(128, 1, 1)]
+void UpdateVelocity(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float3 c_vel = _GridDiffusionBufferRead[c_id];
+
+    ENFORCE_BOUNDARY_CONDITION(c_index, c_vel);
+
+    _GridVelocityBufferWrite[c_id] = c_vel;
+}
