@@ -72,7 +72,7 @@ public class FLIPSimulation : MonoBehaviour
     private readonly GPUBuffer<float> _gridDivergenceBuffer = new();
     private readonly GPUDoubleBuffer<float> _gridPressureBuffer = new();
     private readonly GPUBuffer<float> _gridWeightBuffer = new();
-    private readonly GPUBuffer<float> _gridGoastWeightBuffer = new();
+    private readonly GPUBuffer<float> _gridGhostWeightBuffer = new();
     private readonly GPUBuffer<uint> _gridUIntWeightBuffer = new();
     private readonly GPUDoubleBuffer<float> _gridDensityPressureBuffer = new();
     private readonly GPUBuffer<float3> _gridPositionModifyBuffer = new();
@@ -118,7 +118,7 @@ public class FLIPSimulation : MonoBehaviour
         _pressureProjectionCS = new(Resources.Load<ComputeShader>("PressureProjectionCS"), "CalcDivergence", "Project", "UpdateVelocity");
         _gridToParticleCS = new(Resources.Load<ComputeShader>("GridToParticleCS"), "GridToParticle");
         _advectionCS = new(Resources.Load<ComputeShader>("AdvectionCS"), "Advect");
-        _densityProjectionCS = new(Resources.Load<ComputeShader>("DensityProjectionCS"), "BuildGoastWeight", "InitBuffer", "InterlockedAddWeight", "CalcGridWeight", "Project", "CalcPositionModify", "UpdatePosition");
+        _densityProjectionCS = new(Resources.Load<ComputeShader>("DensityProjectionCS"), "BuildGhostWeight", "InitBuffer", "InterlockedAddWeight", "CalcGridWeight", "Project", "CalcPositionModify", "UpdatePosition");
         _renderingCS = new(Resources.Load<ComputeShader>("RenderingCS"), "PrepareRendering");
     }
 
@@ -154,17 +154,17 @@ public class FLIPSimulation : MonoBehaviour
         _gridDivergenceBuffer.Init(NumGrids);
         _gridPressureBuffer.Init(NumGrids);
         _gridWeightBuffer.Init(NumGrids);
-        _gridGoastWeightBuffer.Init(NumGrids);
+        _gridGhostWeightBuffer.Init(NumGrids);
         _gridUIntWeightBuffer.Init(NumGrids);
         _gridDensityPressureBuffer.Init(NumGrids);
         _gridPositionModifyBuffer.Init(NumGrids);
         _gridFloatZeroBuffer.Init(NumGrids);
 
-        // build goast weight
+        // build ghost weight
         var cs = _densityProjectionCS;
         var k = cs.Kernel[0];
         SetConstants(cs);
-        k.SetBuffer("_GridGoastWeightBufferWrite", _gridGoastWeightBuffer);
+        k.SetBuffer("_GridGhostWeightBufferWrite", _gridGhostWeightBuffer);
         k.Dispatch(NumGrids);
     }
 
@@ -405,7 +405,7 @@ public class FLIPSimulation : MonoBehaviour
         // calc grid weight
         k_weight.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_weight.SetBuffer("_GridUIntWeightBufferRead", _gridUIntWeightBuffer);
-        k_weight.SetBuffer("_GridGoastWeightBufferRead", _gridGoastWeightBuffer);
+        k_weight.SetBuffer("_GridGhostWeightBufferRead", _gridGhostWeightBuffer);
         k_weight.SetBuffer("_GridWeightBufferWrite", _gridWeightBuffer);
         k_weight.Dispatch(NumGrids);
 
@@ -463,7 +463,7 @@ public class FLIPSimulation : MonoBehaviour
         _gridDivergenceBuffer.Release();
         _gridPressureBuffer.Release();
         _gridWeightBuffer.Release();
-        _gridGoastWeightBuffer.Release();
+        _gridGhostWeightBuffer.Release();
         _gridUIntWeightBuffer.Release();
         _gridDensityPressureBuffer.Release();
         _gridPositionModifyBuffer.Release();

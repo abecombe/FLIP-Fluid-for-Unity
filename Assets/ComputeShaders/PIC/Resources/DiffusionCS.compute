@@ -21,7 +21,7 @@ void Diffuse(uint3 id : SV_DispatchThreadID)
 
     float3 velocity = (float3)0;
 
-    // diffuse using Jacobi interations
+    // diffuse using Jacobi iterations
     const int3 c_index_xn = c_index + int3(1, 0, 0);
     const int3 c_index_yn = c_index + int3(0, 1, 0);
     const int3 c_index_zn = c_index + int3(0, 0, 1);

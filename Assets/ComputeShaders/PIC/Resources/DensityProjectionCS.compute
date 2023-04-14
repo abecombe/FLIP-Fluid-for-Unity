@@ -1,4 +1,4 @@
-﻿#pragma kernel BuildGoastWeight
+﻿#pragma kernel BuildGhostWeight
 #pragma kernel InitBuffer
 #pragma kernel InterlockedAddWeight
 #pragma kernel CalcGridWeight
@@ -29,8 +29,8 @@ RWStructuredBuffer<uint> _GridTypeBufferWrite;
 
 StructuredBuffer<float> _GridWeightBufferRead;
 RWStructuredBuffer<float> _GridWeightBufferWrite;
-StructuredBuffer<float> _GridGoastWeightBufferRead;
-RWStructuredBuffer<float> _GridGoastWeightBufferWrite;
+StructuredBuffer<float> _GridGhostWeightBufferRead;
+RWStructuredBuffer<float> _GridGhostWeightBufferWrite;
 StructuredBuffer<uint> _GridUIntWeightBufferRead;
 RWStructuredBuffer<uint> _GridUIntWeightBufferWrite;
 
@@ -43,7 +43,7 @@ RWStructuredBuffer<float3> _GridPositionModifyBufferWrite;
 static const int gridRange[6] = { -1, 1, -1, 1, -1, 1 };
 
 [numthreads(128, 1, 1)]
-void BuildGoastWeight(uint3 id : SV_DispatchThreadID)
+void BuildGhostWeight(uint3 id : SV_DispatchThreadID)
 {
     RETURN_IF_INVALID(id);
 
@@ -53,12 +53,12 @@ void BuildGoastWeight(uint3 id : SV_DispatchThreadID)
     const bool3 edge = c_index % (_GridSize - 1) == 0;
     const int edge_count = (int)edge.x + (int)edge.y + (int)edge.z;
 
-    float goast_weight = 0;
-    if (edge_count == 1) goast_weight = 1.0f;
-    if (edge_count == 2) goast_weight = 1.875f;
-    if (edge_count == 3) goast_weight = 2.640625f;
+    float ghost_weight = 0;
+    if (edge_count == 1) ghost_weight = 1.0f;
+    if (edge_count == 2) ghost_weight = 1.875f;
+    if (edge_count == 3) ghost_weight = 2.640625f;
 
-    _GridGoastWeightBufferWrite[c_id] = goast_weight;
+    _GridGhostWeightBufferWrite[c_id] = ghost_weight;
 }
 
 [numthreads(128, 1, 1)]
@@ -117,7 +117,7 @@ void CalcGridWeight(uint3 id : SV_DispatchThreadID)
 
         if (!neighbor_air)
         {
-            sum_weight = _GridGoastWeightBufferRead[c_id];
+            sum_weight = _GridGhostWeightBufferRead[c_id];
             sum_weight += ConvertUInt2Float(_GridUIntWeightBufferRead[c_id]);
             
             sum_weight *= InvAverageWeight;
@@ -141,7 +141,7 @@ void Project(uint3 id : SV_DispatchThreadID)
 
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
-        // project using Jacobi interations
+        // project using Jacobi iterations
         const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
         const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
         const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));

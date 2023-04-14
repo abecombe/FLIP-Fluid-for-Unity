@@ -57,7 +57,7 @@ void Project(uint3 id : SV_DispatchThreadID)
 
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
-        // project using Jacobi interations
+        // project using Jacobi iterations
         const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
         const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
         const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
