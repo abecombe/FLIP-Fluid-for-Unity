@@ -7,8 +7,8 @@ using UnityEngine.VFX;
 
 public struct Particle
 {
-    public float3 position;
-    public float3 velocity;
+    public float3 Position;
+    public float3 Velocity;
 }
 
 public enum KernelFunction
@@ -34,22 +34,22 @@ public enum Quality
 public class FLIPSimulation : MonoBehaviour
 {
     #region Properties
-    private const float _deltaTime = 1f / 60f;
+    private const float DeltaTime = 1f / 60f;
 
-    private const float _numParticleInCell = 8f;
-    private int NumParticles => (int)(ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * _numParticleInCell);
+    private const float NumParticleInCell = 8f;
+    private int NumParticles => (int)(ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInCell);
     private int NumGrids => GridSize.x * GridSize.y * GridSize.z;
 
     // Quality
-    [SerializeField] private Quality _quality = Quality.Medium;
-    private readonly float[] _qualityToGridSpacing = new float[4] { 0.5f, 0.4f, 0.3f, 0.2f };
-    private float3 TempGridSpacing => _qualityToGridSpacing[(int)_quality];
+    [SerializeField] private Quality quality = Quality.Medium;
+    private readonly float[] _qualityToGridSpacing = { 0.5f, 0.4f, 0.3f, 0.2f };
+    private float3 TempGridSpacing => _qualityToGridSpacing[(int)quality];
 
     // Particle Params
-    [SerializeField] private float3 _particleInitRangeMin;
-    [SerializeField] private float3 _particleInitRangeMax;
-    private float3 ParticleInitRangeMin => _particleInitRangeMin;
-    private float3 ParticleInitRangeMax => _particleInitRangeMax;
+    [SerializeField] private float3 particleInitRangeMin;
+    [SerializeField] private float3 particleInitRangeMax;
+    private float3 ParticleInitRangeMin => particleInitRangeMin;
+    private float3 ParticleInitRangeMax => particleInitRangeMax;
     private float3 ParticleInitGridSize => (ParticleInitRangeMax - ParticleInitRangeMin) / GridSpacing;
 
     // Grid Params
@@ -93,36 +93,36 @@ public class FLIPSimulation : MonoBehaviour
     private readonly GridSortHelper<Particle> _gridSortHelper = new();
 
     // Simulation Params
-    [SerializeField, Tooltip("0 is full PIC, 1 is full FLIP")] [Range(0f, 1f)] private float _flipness = 0.99f;
-    [SerializeField] private Vector3 _gravity = Vector3.down * 9.8f;
-    [SerializeField] [Range(0f, 10f)] private float _viscosity = 0f;
-    [SerializeField] [Range(0f, 5f)] private float _mouseForce = 1.32f;
-    [SerializeField] [Range(0f, 5f)] private float _mouseForceRange = 2.25f;
-    [SerializeField] private KernelFunction _kernelFunction = KernelFunction.Linear;
-    [SerializeField] private AdvectionMethod _advectionMethod = AdvectionMethod.ForwardEuler;
-    [SerializeField] private bool _activeDensityProjection = true;
-    [SerializeField] [Range(1, 30)] private uint _diffusionJacobiIteration = 15;
-    [SerializeField] [Range(1, 30)] private uint _pressureProjectionJacobiIteration = 15;
-    [SerializeField] [Range(1, 60)] private uint _densityProjectionJacobiIteration = 30;
+    [SerializeField] [Tooltip("0 is full PIC, 1 is full FLIP")] [Range(0f, 1f)] private float flipness = 0.99f;
+    [SerializeField] private Vector3 gravity = Vector3.down * 9.8f;
+    [SerializeField] [Range(0f, 10f)] private float viscosity = 0f;
+    [SerializeField] [Range(0f, 5f)] private float mouseForce = 1.32f;
+    [SerializeField] [Range(0f, 5f)] private float mouseForceRange = 2.25f;
+    [SerializeField] private KernelFunction kernelFunction = KernelFunction.Linear;
+    [SerializeField] private AdvectionMethod advectionMethod = AdvectionMethod.ForwardEuler;
+    [SerializeField] private bool activeDensityProjection = true;
+    [SerializeField] [Range(1, 30)] private uint diffusionJacobiIteration = 15;
+    [SerializeField] [Range(1, 30)] private uint pressureProjectionJacobiIteration = 15;
+    [SerializeField] [Range(1, 60)] private uint densityProjectionJacobiIteration = 30;
 
-    [SerializeField] private bool _showFps = true;
+    [SerializeField] private bool showFps = true;
     #endregion
 
     #region Initialize Functions
     private void InitComputeShaders()
     {
-        _particleInitCS = new(Resources.Load<ComputeShader>("ParticleInitCS"), "InitParticle");
-        _particleToGridCS = new(Resources.Load<ComputeShader>("ParticleToGridCS"), "ParticleToGrid");
-        _externalForceCS = new(Resources.Load<ComputeShader>("ExternalForceCS"), "AddExternalForce");
-        _diffusionCS = new(Resources.Load<ComputeShader>("DiffusionCS"), "Diffuse", "UpdateVelocity");
-        _pressureProjectionCS = new(Resources.Load<ComputeShader>("PressureProjectionCS"), "CalcDivergence", "Project", "UpdateVelocity");
-        _gridToParticleCS = new(Resources.Load<ComputeShader>("GridToParticleCS"), "GridToParticle");
-        _advectionCS = new(Resources.Load<ComputeShader>("AdvectionCS"), "Advect");
-        _densityProjectionCS = new(Resources.Load<ComputeShader>("DensityProjectionCS"), "BuildGhostWeight", "InitBuffer", "InterlockedAddWeight", "CalcGridWeight", "Project", "CalcPositionModify", "UpdatePosition");
-        _renderingCS = new(Resources.Load<ComputeShader>("RenderingCS"), "PrepareRendering");
+        _particleInitCS = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleInitCS"), "InitParticle");
+        _particleToGridCS = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleToGridCS"), "ParticleToGrid");
+        _externalForceCS = new GPUComputeShader(Resources.Load<ComputeShader>("ExternalForceCS"), "AddExternalForce");
+        _diffusionCS = new GPUComputeShader(Resources.Load<ComputeShader>("DiffusionCS"), "Diffuse", "UpdateVelocity");
+        _pressureProjectionCS = new GPUComputeShader(Resources.Load<ComputeShader>("PressureProjectionCS"), "CalcDivergence", "Project", "UpdateVelocity");
+        _gridToParticleCS = new GPUComputeShader(Resources.Load<ComputeShader>("GridToParticleCS"), "GridToParticle");
+        _advectionCS = new GPUComputeShader(Resources.Load<ComputeShader>("AdvectionCS"), "Advect");
+        _densityProjectionCS = new GPUComputeShader(Resources.Load<ComputeShader>("DensityProjectionCS"), "BuildGhostWeight", "InitBuffer", "InterlockedAddWeight", "CalcGridWeight", "Project", "CalcPositionModify", "UpdatePosition");
+        _renderingCS = new GPUComputeShader(Resources.Load<ComputeShader>("RenderingCS"), "PrepareRendering");
     }
 
-    private void InitPaticleBuffers()
+    private void InitParticleBuffers()
     {
         _particleBuffer.Init(NumParticles);
         _particleRenderingBuffer.Init(NumParticles);
@@ -164,13 +164,14 @@ public class FLIPSimulation : MonoBehaviour
         var cs = _densityProjectionCS;
         var k = cs.Kernel[0];
         SetConstants(cs);
+        cs.SetVector("_GhostWeight", new float3(0.125f, 0.234375f, 0.330078125f) * NumParticleInCell);
         k.SetBuffer("_GridGhostWeightBufferWrite", _gridGhostWeightBuffer);
         k.Dispatch(NumGrids);
     }
 
     private void InitGPUBuffers()
     {
-        InitPaticleBuffers();
+        InitParticleBuffers();
         InitGridBuffers();
     }
     #endregion
@@ -178,7 +179,7 @@ public class FLIPSimulation : MonoBehaviour
     #region Update Functions
     private void SetConstants(GPUComputeShader cs)
     {
-        cs.SetFloat("_DeltaTime", _deltaTime);
+        cs.SetFloat("_DeltaTime", DeltaTime);
 
         cs.SetVector("_GridMin", GridMin);
         cs.SetVector("_GridMax", GridMax);
@@ -186,7 +187,7 @@ public class FLIPSimulation : MonoBehaviour
         cs.SetVector("_GridSpacing", GridSpacing);
         cs.SetVector("_GridInvSpacing", GridInvSpacing);
 
-        switch (_kernelFunction)
+        switch (kernelFunction)
         {
             case KernelFunction.Linear:
                 cs.EnableKeyword("USE_LINEAR_KERNEL");
@@ -229,7 +230,7 @@ public class FLIPSimulation : MonoBehaviour
 
         k.SetBuffer("_GridVelocityBufferRW", _gridVelocityBuffer);
 
-        cs.SetVector("_Gravity", _gravity);
+        cs.SetVector("_Gravity", gravity);
 
         var cam = Camera.main;
         var mouseRay = cam.ScreenPointToRay(Input.mousePosition);
@@ -244,13 +245,12 @@ public class FLIPSimulation : MonoBehaviour
         var cameraViewMatrix = cam.worldToCameraMatrix;
         var cameraRight = new float3(cameraViewMatrix[0], cameraViewMatrix[4], cameraViewMatrix[8]);
         var cameraUp = new float3(cameraViewMatrix[1], cameraViewMatrix[5], cameraViewMatrix[9]);
-        var mouseVelocity = (mousePlane - _lastMousePlane) / _deltaTime;
+        var mouseVelocity = (mousePlane - _lastMousePlane) / DeltaTime;
         if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetMouseButton(2) || Time.frameCount <= 1)
             mouseVelocity = float2.zero;
         _lastMousePlane = mousePlane;
         var mouseAxisVelocity = mouseVelocity.x * cameraRight + mouseVelocity.y * cameraUp;
-        var mouseForce = mouseAxisVelocity * _mouseForce;
-        cs.SetVector("_MouseForceParameter", new float4(mouseForce, _mouseForceRange));
+        cs.SetVector("_MouseForceParameter", new float4(mouseAxisVelocity * mouseForce, mouseForceRange));
 
         k.Dispatch(NumGrids);
     }
@@ -258,7 +258,7 @@ public class FLIPSimulation : MonoBehaviour
     // viscous diffusion term
     private void DispatchDiffusion()
     {
-        if (_viscosity <= 0f) return;
+        if (viscosity <= 0f) return;
 
         var cs = _diffusionCS;
         var k_diff = cs.Kernel[0];
@@ -267,14 +267,14 @@ public class FLIPSimulation : MonoBehaviour
         SetConstants(cs);
 
         // diffuse
-        float temp1 = _viscosity * _deltaTime;
+        float temp1 = viscosity * DeltaTime;
         float3 temp2 = 1f / GridSpacing / GridSpacing;
         float temp3 = 1f / (1f + 2f * (temp2.x + temp2.y + temp2.z) * temp1);
         float4 diffusionParameter = new(temp1 * temp2 * temp3, temp3);
         cs.SetVector("_DiffusionParameter", diffusionParameter);
         k_diff.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_diff.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
-        for (uint i = 0; i < _diffusionJacobiIteration; i++)
+        for (uint i = 0; i < diffusionJacobiIteration; i++)
         {
             k_diff.SetBuffer("_GridDiffusionBufferRead", _gridDiffusionBuffer.Read);
             k_diff.SetBuffer("_GridDiffusionBufferWrite", _gridDiffusionBuffer.Write);
@@ -313,7 +313,7 @@ public class FLIPSimulation : MonoBehaviour
         cs.SetVector("_PressureProjectionParameter1", projectionParameter1);
         k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_proj.SetBuffer("_GridDivergenceBufferRead", _gridDivergenceBuffer);
-        for (uint i = 0; i < _pressureProjectionJacobiIteration; i++)
+        for (uint i = 0; i < pressureProjectionJacobiIteration; i++)
         {
             k_proj.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
             k_proj.SetBuffer("_GridPressureBufferWrite", _gridPressureBuffer.Write);
@@ -337,7 +337,7 @@ public class FLIPSimulation : MonoBehaviour
 
         SetConstants(cs);
 
-        cs.SetFloat("_Flipness", math.saturate(_flipness));
+        cs.SetFloat("_Flipness", math.saturate(flipness));
         k.SetBuffer("_ParticleBufferRW", _particleBuffer.Read);
         k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
         k.SetBuffer("_GridOriginalVelocityBufferRead", _gridOriginalVelocityBuffer);
@@ -355,7 +355,7 @@ public class FLIPSimulation : MonoBehaviour
 
         k.SetBuffer("_ParticleBufferRW", _particleBuffer.Read);
         k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
-        switch (_advectionMethod)
+        switch (advectionMethod)
         {
             case AdvectionMethod.ForwardEuler:
                 cs.EnableKeyword("USE_RK1");
@@ -390,6 +390,7 @@ public class FLIPSimulation : MonoBehaviour
         var k_update = cs.Kernel[6];
 
         SetConstants(cs);
+        cs.SetFloat("_InvAverageWeight", 1f / NumParticleInCell);
 
         // init buffers
         k_init.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
@@ -416,7 +417,7 @@ public class FLIPSimulation : MonoBehaviour
         cs.SetVector("_DensityProjectionParameter1", projectionParameter1);
         k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_proj.SetBuffer("_GridWeightBufferRead", _gridWeightBuffer);
-        for (uint i = 0; i < _densityProjectionJacobiIteration; i++)
+        for (uint i = 0; i < densityProjectionJacobiIteration; i++)
         {
             k_proj.SetBuffer("_GridDensityPressureBufferRead", i == 0 ? _gridFloatZeroBuffer : _gridDensityPressureBuffer.Read);
             k_proj.SetBuffer("_GridDensityPressureBufferWrite", _gridDensityPressureBuffer.Write);
@@ -480,10 +481,8 @@ public class FLIPSimulation : MonoBehaviour
             "Settings ( press U to open / close )",
             UI.Indent(UI.Box(UI.Indent(
             UI.Space().SetHeight(5f),
-            UI.Field("Quality", () => _quality)
-            .RegisterValueChangeCallback(() => {
-                InitGPUBuffers();
-            }),
+            UI.Field("Quality", () => quality)
+            .RegisterValueChangeCallback(InitGPUBuffers),
             UI.Indent(
                 UI.FieldReadOnly("Num Particles", () => NumParticles),
                 UI.FieldReadOnly("Num Grids", () => NumGrids)
@@ -491,34 +490,34 @@ public class FLIPSimulation : MonoBehaviour
             UI.Space().SetHeight(10f),
             UI.Label("Parameter"),
             UI.Indent(
-                UI.Slider("Flipness", () => _flipness),
-                UI.Field("Gravity", () => _gravity),
-                UI.Slider("Viscosity", () => _viscosity)
+                UI.Slider("Flipness", () => flipness),
+                UI.Field("Gravity", () => gravity),
+                UI.Slider("Viscosity", () => viscosity)
             ),
             UI.Space().SetHeight(10f),
             UI.Label("Numerical Method"),
             UI.Indent(
-                UI.Field("Kernel Function", () => _kernelFunction),
-                UI.Field("Advection Method", () => _advectionMethod),
-                UI.Field("Density Projection", () => _activeDensityProjection)
+                UI.Field("Kernel Function", () => kernelFunction),
+                UI.Field("Advection Method", () => advectionMethod),
+                UI.Field("Density Projection", () => activeDensityProjection)
             ),
             UI.Space().SetHeight(10f),
             UI.Label("Interaction"),
             UI.Indent(
-                UI.Slider("Mouse Force", () => _mouseForce),
-                UI.Slider("Mouse Force Range", () => _mouseForceRange)
+                UI.Slider("Mouse Force", () => mouseForce),
+                UI.Slider("Mouse Force Range", () => mouseForceRange)
             ),
             UI.Space().SetHeight(10f),
             UI.Label("Jacobi Iteration"),
             UI.Indent(
-                UI.Slider("Diffusion", () => _diffusionJacobiIteration),
-                UI.Slider("Pressure Projection", () => _pressureProjectionJacobiIteration),
-                UI.Slider("Density Projection", () => _densityProjectionJacobiIteration)
+                UI.Slider("Diffusion", () => diffusionJacobiIteration),
+                UI.Slider("Pressure Projection", () => pressureProjectionJacobiIteration),
+                UI.Slider("Density Projection", () => densityProjectionJacobiIteration)
             ),
             UI.Space().SetHeight(10f),
-            UI.Field("Show FPS", () => _showFps)
+            UI.Field("Show FPS", () => showFps)
             .RegisterValueChangeCallback(() => {
-                FindObjectOfType<FPSCounter>().enabled = _showFps;
+                FindObjectOfType<FPSCounter>().enabled = showFps;
             }),
             UI.Space().SetHeight(5f)
             )))
@@ -541,7 +540,7 @@ public class FLIPSimulation : MonoBehaviour
         DispatchPressureProjection();
         DispatchGridToParticle();
         DispatchAdvection();
-        if (_activeDensityProjection) DispatchDensityProjection();
+        if (activeDensityProjection) DispatchDensityProjection();
         RenderParticles();
     }
 

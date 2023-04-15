@@ -15,7 +15,6 @@ inline uint ConvertFloat2UInt(float v)
 {
     return round(v * asfloat(0x4b800000)); // 2^24
 }
-
 inline float ConvertUInt2Float(uint v)
 {
     return v * asfloat(0x33800000); // 2^-24
@@ -54,9 +53,9 @@ void BuildGhostWeight(uint3 id : SV_DispatchThreadID)
     const int edge_count = (int)edge.x + (int)edge.y + (int)edge.z;
 
     float ghost_weight = 0;
-    if (edge_count == 1) ghost_weight = 1.0f;
-    if (edge_count == 2) ghost_weight = 1.875f;
-    if (edge_count == 3) ghost_weight = 2.640625f;
+    if (edge_count == 1) ghost_weight = _GhostWeight.x;
+    if (edge_count == 2) ghost_weight = _GhostWeight.y;
+    if (edge_count == 3) ghost_weight = _GhostWeight.z;
 
     _GridGhostWeightBufferWrite[c_id] = ghost_weight;
 }
@@ -120,7 +119,7 @@ void CalcGridWeight(uint3 id : SV_DispatchThreadID)
             sum_weight = _GridGhostWeightBufferRead[c_id];
             sum_weight += ConvertUInt2Float(_GridUIntWeightBufferRead[c_id]);
             
-            sum_weight *= InvAverageWeight;
+            sum_weight *= _InvAverageWeight;
             sum_weight = clamp(sum_weight, 0.5f, 1.5f);
             sum_weight -= 1.0f;
         }

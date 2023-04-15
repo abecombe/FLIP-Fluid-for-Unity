@@ -8,13 +8,13 @@ public class GridSortHelper<Object>
     #region Properties
     private GPUComputeShader _gridSortHelperCS;
     private readonly GPUBuffer<uint2> _objectCellIDPairBuffer = new();
-    private readonly GPURadixSort<uint2> _radixSort = new();
+    private readonly GPURadixSort _radixSort = new();
     #endregion
 
     #region Sort Functions
     public void Sort(GPUDoubleBuffer<Object> objectBuffer, GPUBuffer<uint2> gridObjectIDBuffer, float3 gridMin, float3 gridMax, int3 gridSize, float3 gridSpacing)
     {
-        _gridSortHelperCS ??= new(Resources.Load<ComputeShader>("GridSortHelperCS"), "MakeObjectCellIDPair", "ClearGridObjectID", "SetGridObjectID", "RearrangeObject");
+        _gridSortHelperCS ??= new GPUComputeShader(Resources.Load<ComputeShader>("GridSortHelperCS"), "MakeObjectCellIDPair", "ClearGridObjectID", "SetGridObjectID", "RearrangeObject");
 
         var cs = _gridSortHelperCS;
         var k_make = cs.Kernel[0];

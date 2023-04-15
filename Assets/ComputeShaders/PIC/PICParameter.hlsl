@@ -1,5 +1,5 @@
-﻿#ifndef _CS_PIC_PICPARAMETER_HLSL_
-#define _CS_PIC_PICPARAMETER_HLSL_
+﻿#ifndef CS_PIC_PIC_PARAMETER_HLSL
+#define CS_PIC_PIC_PARAMETER_HLSL
 
 float  _DeltaTime;
 
@@ -19,10 +19,10 @@ float3 _PressureProjectionParameter2;
 
 float  _Flipness;
 
-static const float AverageWeight = 8.0f;
-static const float InvAverageWeight = 1.0f / AverageWeight;
+float3 _GhostWeight;
+float  _InvAverageWeight;
 float4 _DensityProjectionParameter1;
 float3 _DensityProjectionParameter2;
 
 
-#endif /* _CS_PIC_PICPARAMETER_HLSL_ */
+#endif /* CS_PIC_PIC_PARAMETER_HLSL */

@@ -87,9 +87,9 @@ void UpdateVelocity(uint3 id : SV_DispatchThreadID)
     const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
 
     float3 c_vel = _GridVelocityBufferRW[c_id];
-    
+
     const float p = _GridPressureBufferRead[c_id];
-    
+
     c_vel.x -= _PressureProjectionParameter2.x * (p - _GridPressureBufferRead[c_id_xp]);
     c_vel.y -= _PressureProjectionParameter2.y * (p - _GridPressureBufferRead[c_id_yp]);
     c_vel.z -= _PressureProjectionParameter2.z * (p - _GridPressureBufferRead[c_id_zp]);

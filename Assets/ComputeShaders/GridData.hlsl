@@ -1,5 +1,5 @@
-﻿#ifndef _CS_GRIDDATA_HLSL_
-#define _CS_GRIDDATA_HLSL_
+﻿#ifndef CS_GRID_DATA_HLSL
+#define CS_GRID_DATA_HLSL
 
 float3 _GridMin;
 float3 _GridMax;
@@ -8,4 +8,4 @@ float3 _GridSpacing;
 float3 _GridInvSpacing;
 
 
-#endif /* _CS_GRIDDATA_HLSL_ */
+#endif /* CS_GRID_DATA_HLSL */

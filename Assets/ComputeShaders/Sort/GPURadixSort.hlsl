@@ -1,5 +1,16 @@
-﻿#ifndef _CS_SORT_RADIXSORT_HLSL_
-#define _CS_SORT_RADIXSORT_HLSL_
+﻿#ifndef CS_SORT_GPU_RADIX_SORT_HLSL
+#define CS_SORT_GPU_RADIX_SORT_HLSL
+
+//#pragma kernel RadixSortLocal
+//#pragma kernel GlobalShuffle
+
+// default define
+#ifndef DATA_TYPE
+#define DATA_TYPE uint2  // input data struct
+#endif
+#ifndef GET_KEY
+#define GET_KEY(s) s.x   // how to get the key-values used for sorting
+#endif
 
 #define NUM_GROUP_THREADS 128
 
@@ -133,4 +144,4 @@ void GlobalShuffle(int group_thread_id : SV_GroupThreadID, int group_id : SV_Gro
 }
 
 
-#endif /* _CS_SORT_RADIXSORT_HLSL_ */
+#endif /* CS_SORT_GPU_RADIX_SORT_HLSL */

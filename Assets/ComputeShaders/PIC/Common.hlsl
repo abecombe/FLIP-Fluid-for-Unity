@@ -1,12 +1,12 @@
-﻿#ifndef _CS_PIC_COMMON_HLSL_
-#define _CS_PIC_COMMON_HLSL_
+﻿#ifndef CS_PIC_COMMON_HLSL
+#define CS_PIC_COMMON_HLSL
 
 #include "../Constant.hlsl"
 #include "../PCG.hlsl"
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
-#include "../DispatcherHelper.hlsl"
+#include "../DispatchHelper.hlsl"
 
 #include "PICParticle.hlsl"
 #include "PICGrid.hlsl"
@@ -16,4 +16,4 @@
 #include "PICKernel.hlsl"
 
 
-#endif /* _CS_PIC_COMMON_HLSL_ */
+#endif /* CS_PIC_COMMON_HLSL */

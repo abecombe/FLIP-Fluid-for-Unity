@@ -1,10 +1,10 @@
-﻿#ifndef _CS_SORT_GRIDSORTHELPER_HLSL_
-#define _CS_SORT_GRIDSORTHELPER_HLSL_
+﻿#ifndef CS_SORT_GRID_SORT_HELPER_HLSL
+#define CS_SORT_GRID_SORT_HELPER_HLSL
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
 
-#include "../DispatcherHelper.hlsl"
+#include "../DispatchHelper.hlsl"
 
 uint _NumObjects;
 
@@ -67,4 +67,4 @@ void RearrangeObject(uint3 id : SV_DispatchThreadID)
 }
 
 
-#endif /* _CS_SORT_GRIDSORTHELPER_HLSL_ */
+#endif /* CS_SORT_GRID_SORT_HELPER_HLSL */

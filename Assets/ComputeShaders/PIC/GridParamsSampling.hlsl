@@ -1,5 +1,5 @@
-﻿#ifndef _CS_PIC_GRIDPARAMSSAMPLING_HLSL_
-#define _CS_PIC_GRIDPARAMSSAMPLING_HLSL_
+﻿#ifndef CS_PIC_GRID_PARAMS_SAMPLING_HLSL
+#define CS_PIC_GRID_PARAMS_SAMPLING_HLSL
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
@@ -117,10 +117,10 @@ SAMPLE_GRID_PARAMS_Y(value.y, POS, GRID_BUFFER)\
 SAMPLE_GRID_PARAMS_Z(value.z, POS, GRID_BUFFER)\
 return value;\
 
-inline float3 SampleGridParams(float3 pos, StructuredBuffer<float3> gridBuffer)
+inline float3 SampleGridParams(float3 pos, StructuredBuffer<float3> grid_buffer)
 {
-    SAMPLE_GRID_PARAMS_MASTER(pos, gridBuffer)
+    SAMPLE_GRID_PARAMS_MASTER(pos, grid_buffer)
 }
 
 
-#endif /* _CS_PIC_GRIDPARAMSSAMPLING_HLSL_ */
+#endif /* CS_PIC_GRID_PARAMS_SAMPLING_HLSL */

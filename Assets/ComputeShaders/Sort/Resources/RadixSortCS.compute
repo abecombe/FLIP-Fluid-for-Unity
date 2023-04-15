@@ -4,4 +4,4 @@
 #define DATA_TYPE uint2  // input data struct
 #define GET_KEY(s) s.x   // how to get the key-values used for sorting
 
-#include "../RadixSort.hlsl"
+#include "../GPURadixSort.hlsl"

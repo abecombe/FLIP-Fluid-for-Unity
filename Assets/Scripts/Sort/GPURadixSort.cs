@@ -1,16 +1,15 @@
-﻿using System.Runtime.InteropServices;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Abecombe.GPUBufferOperators
 {
-    public class GPURadixSort<T>
+    public class GPURadixSort
     {
-        private static readonly int _numGroupThreads = 128;
-        private static readonly int _numElementsPerGroup = _numGroupThreads;
+        private const int NumGroupThreads = 128;
+        private const int NumElementsPerGroup = NumGroupThreads;
 
-        private static readonly int _max_dispatch_size = 65535;
+        private const int MaxDispatchSize = 65535;
 
-        protected ComputeShader _radixSortCS;
+        protected ComputeShader RadixSortCS;
         private int _kernelRadixSortLocal;
         private int _kernelGlobalShuffle;
 
@@ -30,14 +29,14 @@ namespace Abecombe.GPUBufferOperators
 
         protected virtual void LoadComputeShader()
         {
-            _radixSortCS = Resources.Load<ComputeShader>("RadixSortCS");
+            RadixSortCS = Resources.Load<ComputeShader>("RadixSortCS");
         }
 
         private void Init()
         {
-            if (!_radixSortCS) LoadComputeShader();
-            _kernelRadixSortLocal = _radixSortCS.FindKernel("RadixSortLocal");
-            _kernelGlobalShuffle = _radixSortCS.FindKernel("GlobalShuffle");
+            if (!RadixSortCS) LoadComputeShader();
+            _kernelRadixSortLocal = RadixSortCS.FindKernel("RadixSortLocal");
+            _kernelGlobalShuffle = RadixSortCS.FindKernel("GlobalShuffle");
 
             _inited = true;
         }
@@ -48,7 +47,7 @@ namespace Abecombe.GPUBufferOperators
         // GPURadixSort has O(n * s * w) complexity
         // n : number of data
         // s : size of data struct
-        // w : number of bits
+        // w : number of bits to sort
 
         // dataBuffer
         // : data<T> buffer to be sorted
@@ -61,14 +60,14 @@ namespace Abecombe.GPUBufferOperators
         {
             if (!_inited) Init();
 
-            var cs = _radixSortCS;
+            var cs = RadixSortCS;
             var k_local = _kernelRadixSortLocal;
             var k_shuffle = _kernelGlobalShuffle;
 
             int numElements = dataBuffer.count;
-            int numGroups = (numElements + _numElementsPerGroup - 1) / _numElementsPerGroup;
+            int numGroups = (numElements + NumElementsPerGroup - 1) / NumElementsPerGroup;
 
-            CheckBufferSizeChanged(numElements, numGroups);
+            CheckBufferSizeChanged(numElements, numGroups, dataBuffer.stride);
 
             cs.SetInt("num_elements", numElements);
             cs.SetInt("num_groups", numGroups);
@@ -89,37 +88,37 @@ namespace Abecombe.GPUBufferOperators
                 cs.SetInt("bit_shift", bitShift);
 
                 // sort input data locally and output first-index / sums of each 2bit key-value within groups
-                for (int i = 0; i < numGroups; i += _max_dispatch_size)
+                for (int i = 0; i < numGroups; i += MaxDispatchSize)
                 {
                     cs.SetInt("group_offset", i);
-                    cs.Dispatch(k_local, Mathf.Min(numGroups - i, _max_dispatch_size), 1, 1);
+                    cs.Dispatch(k_local, Mathf.Min(numGroups - i, MaxDispatchSize), 1, 1);
                 }
 
                 // prefix scan global group sum data
                 _prefixScan.Scan(_groupSumBuffer);
 
                 // copy input data to final position in global memory
-                for (int i = 0; i < numGroups; i += _max_dispatch_size)
+                for (int i = 0; i < numGroups; i += MaxDispatchSize)
                 {
                     cs.SetInt("group_offset", i);
-                    cs.Dispatch(k_shuffle, Mathf.Min(numGroups - i, _max_dispatch_size), 1, 1);
+                    cs.Dispatch(k_shuffle, Mathf.Min(numGroups - i, MaxDispatchSize), 1, 1);
                 }
             }
         }
 
-        private void CheckBufferSizeChanged(int numElements, int numGroups)
+        private void CheckBufferSizeChanged(int numElements, int numGroups, int bufferStride)
         {
-            if (_tempBuffer == null || _tempBuffer.count != numElements)
+            if (_tempBuffer is null || _tempBuffer.count < numElements || _tempBuffer.stride != bufferStride)
             {
                 _tempBuffer?.Release();
-                _tempBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, numElements, Marshal.SizeOf(typeof(T)));
+                _tempBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, numElements, bufferStride);
             }
-            if (_firstIndexBuffer == null || _firstIndexBuffer.count != 4 * numGroups)
+            if (_firstIndexBuffer is null || _firstIndexBuffer.count < 4 * numGroups)
             {
                 _firstIndexBuffer?.Release();
                 _firstIndexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, 4 * numGroups, sizeof(uint));
             }
-            if (_groupSumBuffer == null || _groupSumBuffer.count != 4 * numGroups)
+            if (_groupSumBuffer is null || _groupSumBuffer.count != 4 * numGroups)
             {
                 _groupSumBuffer?.Release();
                 _groupSumBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, 4 * numGroups, sizeof(uint));
@@ -128,11 +127,11 @@ namespace Abecombe.GPUBufferOperators
 
         public void ReleaseBuffers()
         {
-            _tempBuffer?.Release();
-            _firstIndexBuffer?.Release();
-            _groupSumBuffer?.Release();
+            if (_tempBuffer is not null) { _tempBuffer.Release(); _tempBuffer = null; }
+            if (_firstIndexBuffer is not null) { _firstIndexBuffer.Release(); _firstIndexBuffer = null; }
+            if (_groupSumBuffer is not null) { _groupSumBuffer.Release(); _groupSumBuffer = null; }
 
-            _prefixScan?.ReleaseBuffers();
+            _prefixScan.ReleaseBuffers();
         }
     }
 }

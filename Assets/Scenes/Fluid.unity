@@ -535,7 +535,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a2d8e7a50b54c1499c6f8911a6b59a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _toggleUIKey: 117
+  toggleUIKey: 117
 --- !u!114 &1005516105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -612,27 +612,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb2ca9a5c0b9d3843b98d806231fb0c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _quality: 2
-  _particleInitRangeMin:
+  quality: 2
+  particleInitRangeMin:
     x: -9
     y: -4
     z: -9
-  _particleInitRangeMax:
+  particleInitRangeMax:
     x: 1
     y: 9
     z: 9
-  _flipness: 0.99
-  _gravity: {x: 0, y: -9.8, z: 0}
-  _viscosity: 0
-  _mouseForce: 1.32
-  _mouseForceRange: 2.25
-  _kernelFunction: 0
-  _advectionMethod: 0
-  _activeDensityProjection: 1
-  _diffusionJacobiIteration: 15
-  _pressureProjectionJacobiIteration: 15
-  _densityProjectionJacobiIteration: 30
-  _showFps: 1
+  flipness: 0.99
+  gravity: {x: 0, y: -9.8, z: 0}
+  viscosity: 0
+  mouseForce: 1.32
+  mouseForceRange: 2.25
+  kernelFunction: 0
+  advectionMethod: 0
+  activeDensityProjection: 1
+  diffusionJacobiIteration: 15
+  pressureProjectionJacobiIteration: 15
+  densityProjectionJacobiIteration: 30
+  showFps: 1
 --- !u!4 &1099404996
 Transform:
   m_ObjectHideFlags: 0

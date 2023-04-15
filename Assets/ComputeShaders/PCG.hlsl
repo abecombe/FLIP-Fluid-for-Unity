@@ -1,5 +1,5 @@
-﻿#ifndef _CS_PCG_HLSL_
-#define _CS_PCG_HLSL_
+﻿#ifndef CS_PCG_HLSL
+#define CS_PCG_HLSL
 
 // Permuted Congruential Generator
 // Original source code: https://www.shadertoy.com/view/XlGcRh
@@ -349,4 +349,4 @@ inline float4 PCG4_01(float4 value)
 }
 
 
-#endif /* _CS_PCG_HLSL_ */
+#endif /* CS_PCG_HLSL */

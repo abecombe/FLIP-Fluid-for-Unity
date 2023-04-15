@@ -1,5 +1,5 @@
-﻿#ifndef _CS_PIC_PICPARTICLE_HLSL_
-#define _CS_PIC_PICPARTICLE_HLSL_
+﻿#ifndef CS_PIC_PIC_PARTICLE_HLSL
+#define CS_PIC_PIC_PARTICLE_HLSL
 
 struct Particle
 {
@@ -8,4 +8,4 @@ struct Particle
 };
 
 
-#endif /* _CS_PIC_PICPARTICLE_HLSL_ */
+#endif /* CS_PIC_PIC_PARTICLE_HLSL */

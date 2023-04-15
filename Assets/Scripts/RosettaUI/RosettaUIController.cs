@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(RosettaUIRoot))]
 public class RosettaUIController : MonoBehaviour
 {
-    [SerializeField] private KeyCode _toggleUIKey = KeyCode.U;
+    [SerializeField] private KeyCode toggleUIKey = KeyCode.U;
 
     private RosettaUIRoot _root;
 
@@ -16,7 +16,7 @@ public class RosettaUIController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(_toggleUIKey))
+        if (Input.GetKeyDown(toggleUIKey))
             _root.enabled = !_root.enabled;
     }
 }

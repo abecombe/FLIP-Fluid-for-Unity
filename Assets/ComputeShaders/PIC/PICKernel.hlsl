@@ -1,5 +1,5 @@
-﻿#ifndef _CS_PIC_PICKERNEL_HLSL_
-#define _CS_PIC_PICKERNEL_HLSL_
+﻿#ifndef CS_PIC_PIC_KERNEL_HLSL
+#define CS_PIC_PIC_KERNEL_HLSL
 
 inline float3 LinearKernel(float3 absx)
 {
@@ -30,4 +30,4 @@ inline float GetWeight(float3 p_pos, float3 c_pos, float3 invH)
 }
 
 
-#endif /* _CS_PIC_PICKERNEL_HLSL_ */
+#endif /* CS_PIC_PIC_KERNEL_HLSL */

@@ -1,5 +1,5 @@
-﻿#ifndef _CS_GRIDHELPER_HLSL_
-#define _CS_GRIDHELPER_HLSL_
+﻿#ifndef CS_GRID_HELPER_HLSL
+#define CS_GRID_HELPER_HLSL
 
 #include "GridData.hlsl"
 
@@ -20,8 +20,8 @@ inline float3 CellIndexToCellPos(uint3 index)
 
 inline uint CellIndexToCellID(int3 index)
 {
-    uint3 clampedIndex = clamp(index, (int3)0, _GridSize - 1);
-    return clampedIndex.x + clampedIndex.y * _GridSize.x + clampedIndex.z * _GridSize.x * _GridSize.y;
+    uint3 clamped_index = clamp(index, (int3)0, _GridSize - 1);
+    return clamped_index.x + clamped_index.y * _GridSize.x + clamped_index.z * _GridSize.x * _GridSize.y;
 }
 
 inline uint PosToCellID(float3 pos)
@@ -56,4 +56,4 @@ for (int k = max((int)C_INDEX.z + RANGE[4], 0); k <= min((int)C_INDEX.z + RANGE[
 #define FOR_EACH_NEIGHBOR_CELL_PARTICLE_END }}}
 
 
-#endif /* _CS_GRIDHELPER_HLSL_ */
+#endif /* CS_GRID_HELPER_HLSL */
