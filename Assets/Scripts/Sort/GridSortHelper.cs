@@ -1,14 +1,15 @@
-﻿using Abecombe.GPUBufferOperators;
+﻿using System;
+using Abecombe.GPUBufferOperators;
 using GPUUtil;
 using Unity.Mathematics;
 using UnityEngine;
 
-public class GridSortHelper<Object>
+public class GridSortHelper<Object> : IDisposable
 {
     #region Properties
     private GPUComputeShader _gridSortHelperCS;
-    private readonly GPUBuffer<uint2> _objectCellIDPairBuffer = new();
-    private readonly GPURadixSort _radixSort = new();
+    private GPUBuffer<uint2> _objectCellIDPairBuffer = new();
+    private GPURadixSort _radixSort = new();
     #endregion
 
     #region Sort Functions
@@ -64,10 +65,10 @@ public class GridSortHelper<Object>
     #endregion
 
     #region Release Buffers
-    public void ReleaseBuffers()
+    public void Dispose()
     {
-        _objectCellIDPairBuffer.Release();
-        _radixSort.ReleaseBuffers();
+        _objectCellIDPairBuffer.Dispose();
+        _radixSort.Dispose();
     }
     #endregion
 }

@@ -1,19 +1,20 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace Abecombe.GPUBufferOperators
 {
-    public class GPURadixSort
+    public class GPURadixSort : IDisposable
     {
         private const int NumGroupThreads = 128;
         private const int NumElementsPerGroup = NumGroupThreads;
 
         private const int MaxDispatchSize = 65535;
 
-        protected ComputeShader RadixSortCS;
+        protected ComputeShader RadixSortCs;
         private int _kernelRadixSortLocal;
         private int _kernelGlobalShuffle;
 
-        private readonly GPUPrefixScan _prefixScan = new();
+        private GPUPrefixScan _prefixScan = new();
 
         // buffer to store the locally sorted input data
         // size: number of data
@@ -29,14 +30,14 @@ namespace Abecombe.GPUBufferOperators
 
         protected virtual void LoadComputeShader()
         {
-            RadixSortCS = Resources.Load<ComputeShader>("RadixSortCS");
+            RadixSortCs = Resources.Load<ComputeShader>("RadixSortCS");
         }
 
         private void Init()
         {
-            if (!RadixSortCS) LoadComputeShader();
-            _kernelRadixSortLocal = RadixSortCS.FindKernel("RadixSortLocal");
-            _kernelGlobalShuffle = RadixSortCS.FindKernel("GlobalShuffle");
+            if (!RadixSortCs) LoadComputeShader();
+            _kernelRadixSortLocal = RadixSortCs.FindKernel("RadixSortLocal");
+            _kernelGlobalShuffle = RadixSortCs.FindKernel("GlobalShuffle");
 
             _inited = true;
         }
@@ -60,7 +61,7 @@ namespace Abecombe.GPUBufferOperators
         {
             if (!_inited) Init();
 
-            var cs = RadixSortCS;
+            var cs = RadixSortCs;
             var k_local = _kernelRadixSortLocal;
             var k_shuffle = _kernelGlobalShuffle;
 
@@ -82,7 +83,7 @@ namespace Abecombe.GPUBufferOperators
             cs.SetBuffer(k_shuffle, "first_index_buffer", _firstIndexBuffer);
             cs.SetBuffer(k_shuffle, "global_prefix_sum_buffer", _groupSumBuffer);
 
-            int firstBitHigh = System.Convert.ToString(maxValue, 2).Length;
+            int firstBitHigh = Convert.ToString(maxValue, 2).Length;
             for (int bitShift = 0; bitShift < firstBitHigh; bitShift += 2)
             {
                 cs.SetInt("bit_shift", bitShift);
@@ -125,13 +126,13 @@ namespace Abecombe.GPUBufferOperators
             }
         }
 
-        public void ReleaseBuffers()
+        public void Dispose()
         {
             if (_tempBuffer is not null) { _tempBuffer.Release(); _tempBuffer = null; }
             if (_firstIndexBuffer is not null) { _firstIndexBuffer.Release(); _firstIndexBuffer = null; }
             if (_groupSumBuffer is not null) { _groupSumBuffer.Release(); _groupSumBuffer = null; }
 
-            _prefixScan.ReleaseBuffers();
+            _prefixScan.Dispose();
         }
     }
 }

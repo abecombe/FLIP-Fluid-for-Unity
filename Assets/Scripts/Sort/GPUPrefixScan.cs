@@ -1,13 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Abecombe.GPUBufferOperators
 {
-    public class GPUPrefixScan
+    public class GPUPrefixScan : IDisposable
     {
         private const int MaxDispatchSize = 65535;
 
-        protected ComputeShader PrefixScanCS;
+        protected ComputeShader PrefixScanCs;
         private int _kernelPrefixScan;
         private int _kernelAddGroupSum;
 
@@ -24,14 +25,14 @@ namespace Abecombe.GPUBufferOperators
 
         protected virtual void LoadComputeShader()
         {
-            PrefixScanCS = Resources.Load<ComputeShader>("PrefixScanCS");
+            PrefixScanCs = Resources.Load<ComputeShader>("PrefixScanCS");
         }
 
         private void Init()
         {
-            if (!PrefixScanCS) LoadComputeShader();
-            _kernelPrefixScan = PrefixScanCS.FindKernel("PrefixScan");
-            _kernelAddGroupSum = PrefixScanCS.FindKernel("AddGroupSum");
+            if (!PrefixScanCs) LoadComputeShader();
+            _kernelPrefixScan = PrefixScanCs.FindKernel("PrefixScan");
+            _kernelAddGroupSum = PrefixScanCs.FindKernel("AddGroupSum");
 
             _inited = true;
         }
@@ -40,7 +41,7 @@ namespace Abecombe.GPUBufferOperators
         // https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
 
         // dataBuffer
-        // : data<uint> buffer to be scaned
+        // : data<uint> buffer to be scanned
         // returnTotalSum
         // : whether this function should return the total sum of values
         // return value
@@ -76,7 +77,7 @@ namespace Abecombe.GPUBufferOperators
             _totalSumBuffer ??= new GraphicsBuffer(GraphicsBuffer.Target.Structured, 1, sizeof(uint));
             totalSumBuffer ??= _totalSumBuffer;
 
-            var cs = PrefixScanCS;
+            var cs = PrefixScanCs;
             var k_scan = _kernelPrefixScan;
             var k_add = _kernelAddGroupSum;
 
@@ -179,7 +180,7 @@ namespace Abecombe.GPUBufferOperators
             }
         }
 
-        public void ReleaseBuffers()
+        public void Dispose()
         {
             if (_groupSumBufferList is not null) { _groupSumBufferList.ForEach(x => x.Release()); _groupSumBufferList = null; } 
             if (_totalSumBuffer is not null) { _totalSumBuffer.Release(); _totalSumBuffer = null; }

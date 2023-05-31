@@ -1,33 +1,33 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace GPUUtil
 {
-    public class GPUDoubleBuffer<T>
+    public class GPUDoubleBuffer<T> : IDisposable
     {
         public GPUBuffer<T> Read => _bufferRead;
         public GPUBuffer<T> Write => _bufferWrite;
         public int Size => _bufferRead.Size;
-        public bool Inited => _inited;
 
-        protected GPUBuffer<T> _bufferRead = new();
-        protected GPUBuffer<T> _bufferWrite = new();
-        protected bool _inited = false;
+        private GPUBuffer<T> _bufferRead = new();
+        private GPUBuffer<T> _bufferWrite = new();
+        private bool _inited = false;
 
         public void Init(int size)
         {
-            Release();
+            Dispose();
             _bufferRead.Init(size);
             _bufferWrite.Init(size);
             _inited = true;
         }
 
-        public void Release()
+        public void Dispose()
         {
-            if (_inited) _bufferRead.Release();
-            if (_inited) _bufferWrite.Release();
+            if (_inited) _bufferRead.Dispose();
+            if (_inited) _bufferWrite.Dispose();
             _inited = false;
         }
 
@@ -41,42 +41,52 @@ namespace GPUUtil
 
         public void Swap()
         {
-            var temp = _bufferRead;
-            _bufferRead = _bufferWrite;
-            _bufferWrite = temp;
+            (_bufferRead, _bufferWrite) = (_bufferWrite, _bufferRead);
         }
 
         public void SetData(T[] data)
         {
             _bufferRead.SetData(data);
         }
+        public void SetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
+        {
+            _bufferRead.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+        }
         public void GetReadData(T[] data)
         {
             _bufferRead.GetData(data);
+        }
+        public void GetReadData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
+        {
+            _bufferRead.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
         public void GetWriteData(T[] data)
         {
             _bufferWrite.GetData(data);
         }
+        public void GetWriteData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
+        {
+            _bufferWrite.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+        }
     }
 
-    public class GPUBuffer<T>
+    public class GPUBuffer<T> : IDisposable
     {
         public GraphicsBuffer Data => _buffer;
         public int Size => _buffer.count;
-        public bool Inited => _inited;
+        public int Bytes => _buffer.count * _buffer.stride;
 
-        protected GraphicsBuffer _buffer;
-        protected bool _inited = false;
+        private GraphicsBuffer _buffer;
+        private bool _inited = false;
 
         public void Init(int size)
         {
-            Release();
+            Dispose();
             _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, size, Marshal.SizeOf(typeof(T)));
             _inited = true;
         }
 
-        public void Release()
+        public void Dispose()
         {
             if (_inited) _buffer.Release();
             _inited = false;
@@ -92,13 +102,19 @@ namespace GPUUtil
 
         public void SetData(T[] data)
         {
-            Debug.Assert(data.Length == Size);
             _buffer.SetData(data);
+        }
+        public void SetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
+        {
+            _buffer.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
         public void GetData(T[] data)
         {
-            Debug.Assert(data.Length == Size);
             _buffer.GetData(data);
+        }
+        public void GetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
+        {
+            _buffer.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
 
         public static implicit operator GraphicsBuffer(GPUBuffer<T> buffer)
@@ -109,8 +125,8 @@ namespace GPUUtil
 
     public class GPUComputeShader
     {
-        protected ComputeShader _cs;
-        protected GPUKernel[] _kernel;
+        private ComputeShader _cs;
+        private GPUKernel[] _kernel;
         public GPUKernel[] Kernel => _kernel;
 
         public GPUComputeShader(ComputeShader cs, params string[] names)
@@ -123,6 +139,10 @@ namespace GPUUtil
         public void SetInt(string name, int value)
         {
             _cs.SetInt(name, value);
+        }
+        public void SetInt(string name, uint value)
+        {
+            _cs.SetInt(name, (int)value);
         }
         #endregion
 
@@ -216,10 +236,10 @@ namespace GPUUtil
 
     public class GPUKernel
     {
-        protected ComputeShader _cs;
-        protected string _name;
-        protected int _id;
-        protected uint3 _threadSize;
+        private ComputeShader _cs;
+        private string _name;
+        private int _id;
+        private uint3 _threadSize;
 
         public GPUKernel(ComputeShader cs, string name)
         {

@@ -23,7 +23,7 @@ public class FPSCounter : MonoBehaviour
         float msec = _deltaTime / Time.timeScale * 1000.0f;
         float fps = Time.timeScale / _deltaTime;
 
-        string text = string.Format("{0:0.00} ms ({1:0.00} fps)", msec, fps);
+        string text = $"{msec:0.00} ms ({fps:0.00} fps)";
 
         Rect rect = new()
         {
@@ -33,9 +33,12 @@ public class FPSCounter : MonoBehaviour
         GUIStyle style = new()
         {
             alignment = TextAnchor.UpperRight,
-            fontSize = _fontSize
+            fontSize = _fontSize,
+            normal =
+            {
+                textColor = fps >= _lowFps ? _normalColor : _lowColor
+            }
         };
-        style.normal.textColor = fps >= _lowFps ? _normalColor : _lowColor;
 
         GUI.Label(rect, text, style);
     }
