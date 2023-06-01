@@ -20,6 +20,11 @@ inline float ConvertUInt2Float(uint v)
     return v * asfloat(0x33800000); // 2^-24
 }
 
+float3 _GhostWeight;
+float  _InvAverageWeight;
+float4 _DensityProjectionParameter1;
+float3 _DensityProjectionParameter2;
+
 StructuredBuffer<Particle> _ParticleBufferRead;
 RWStructuredBuffer<Particle> _ParticleBufferRW;
 
@@ -188,9 +193,9 @@ void UpdatePosition(uint3 id : SV_DispatchThreadID)
 
     Particle p = _ParticleBufferRW[p_id];
 
-    p.position += SampleGridParams(p.position, _GridPositionModifyBufferRead);
+    p.position += SampleGridVector(p.position, _GridPositionModifyBufferRead);
 
-    CLAMP_POSITION(p.position);
+    ClampPosition(p.position, _GridMin, _GridMax);
 
     _ParticleBufferRW[p_id] = p;
 }

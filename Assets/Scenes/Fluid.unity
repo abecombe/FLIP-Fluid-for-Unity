@@ -628,7 +628,7 @@ MonoBehaviour:
   _mouseForceRange: 2.25
   _kernelFunction: 0
   _advectionMethod: 0
-  _activeDensityProjection: 1
+  _activeDensityProjection: 0
   _diffusionJacobiIteration: 15
   _pressureProjectionJacobiIteration: 15
   _densityProjectionJacobiIteration: 30

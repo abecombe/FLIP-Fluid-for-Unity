@@ -2,6 +2,9 @@
 
 #include "../Common.hlsl"
 
+float3 _ParticleInitRangeMin;
+float3 _ParticleInitRangeMax;
+
 RWStructuredBuffer<Particle> _ParticleBufferWrite;
 
 [numthreads(128, 1, 1)]
@@ -10,12 +13,12 @@ void InitParticle(uint3 id : SV_DispatchThreadID)
     RETURN_IF_INVALID(id);
 
     const uint p_id = id.x;
-    
+
     Particle p = (Particle)0;
-    
+
     p.position = _ParticleInitRangeMin + PCG3_01(p_id) * (_ParticleInitRangeMax - _ParticleInitRangeMin);
-    
-    CLAMP_POSITION(p.position);
+
+    ClampPosition(p.position, _GridMin, _GridMax);
 
     _ParticleBufferWrite[p_id] = p;
 }

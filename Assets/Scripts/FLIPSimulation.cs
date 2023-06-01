@@ -83,6 +83,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private GPUComputeShader _particleToGridCs;
     private GPUComputeShader _externalForceCs;
     private GPUComputeShader _diffusionCs;
+    private GPUComputeShader _boundaryCs;
     private GPUComputeShader _pressureProjectionCs;
     private GPUComputeShader _gridToParticleCs;
     private GPUComputeShader _particleAdvectionCs;
@@ -115,6 +116,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         _particleToGridCs = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleToGridCS"), "ParticleToGrid");
         _externalForceCs = new GPUComputeShader(Resources.Load<ComputeShader>("ExternalForceCS"), "AddExternalForce");
         _diffusionCs = new GPUComputeShader(Resources.Load<ComputeShader>("DiffusionCS"), "Diffuse", "UpdateVelocity");
+        _boundaryCs = new GPUComputeShader(Resources.Load<ComputeShader>("BoundaryCS"), "EnforceBoundaryCondition");
         _pressureProjectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("PressureProjectionCS"), "CalcDivergence", "Project", "UpdateVelocity");
         _gridToParticleCs = new GPUComputeShader(Resources.Load<ComputeShader>("GridToParticleCS"), "GridToParticle");
         _particleAdvectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleAdvectionCS"), "Advect");
@@ -288,6 +290,19 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         k_vel.Dispatch(NumGrids);
     }
 
+    // enforce boundary velocity conditions
+    private void DispatchBoundaryCondition()
+    {
+        var cs = _boundaryCs;
+        var k = cs.Kernel[0];
+
+        SetConstants(cs);
+
+        k.SetBuffer("_GridVelocityBufferRW", _gridVelocityBuffer);
+
+        k.Dispatch(NumGrids);
+    }
+
     // pressure projection term
     private void DispatchPressureProjection()
     {
@@ -299,7 +314,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         SetConstants(cs);
 
         // calc divergence
-        float3 divergenceParameter = 1f / GridSpacing;
+        float3 divergenceParameter = 1f / (2f * GridSpacing);
         cs.SetVector("_DivergenceParameter", divergenceParameter);
         k_div.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_div.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
@@ -322,7 +337,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         }
 
         // update velocity
-        float3 projectionParameter2 = 1f / GridSpacing;
+        float3 projectionParameter2 = 1f / (2f * GridSpacing);
         cs.SetVector("_PressureProjectionParameter2", projectionParameter2);
         k_vel.SetBuffer("_GridVelocityBufferRW", _gridVelocityBuffer);
         k_vel.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
@@ -539,6 +554,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         DispatchParticleToGrid();
         DispatchExternalForce();
         DispatchDiffusion();
+        DispatchBoundaryCondition();
         DispatchPressureProjection();
         DispatchGridToParticle();
         DispatchAdvection();

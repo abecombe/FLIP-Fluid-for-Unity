@@ -4,6 +4,10 @@
 
 #include "../Common.hlsl"
 
+float3 _DivergenceParameter;
+float4 _PressureProjectionParameter1;
+float3 _PressureProjectionParameter2;
+
 StructuredBuffer<uint> _GridTypeBufferRead;
 
 StructuredBuffer<float3> _GridVelocityBufferRead;
@@ -23,23 +27,20 @@ void CalcDivergence(uint3 id : SV_DispatchThreadID)
     const uint c_id = id.x;
     const uint3 c_index = CellIDToCellIndex(c_id);
 
-    const float3 c_vel = _GridVelocityBufferRead[c_id];
-
     float divergence = 0;
 
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
-        const int3 c_index_xn = c_index + int3(1, 0, 0);
-        const int3 c_index_yn = c_index + int3(0, 1, 0);
-        const int3 c_index_zn = c_index + int3(0, 0, 1);
+        const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+        const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
+        const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+        const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
+        const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+        const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
-        const uint c_id_xn = CellIndexToCellID(c_index_xn);
-        const uint c_id_yn = CellIndexToCellID(c_index_yn);
-        const uint c_id_zn = CellIndexToCellID(c_index_zn);
-
-        divergence += _DivergenceParameter.x * ((c_index_xn.x < _GridSize.x ? _GridVelocityBufferRead[c_id_xn].x : 0.0f) - c_vel.x);
-        divergence += _DivergenceParameter.y * ((c_index_yn.y < _GridSize.y ? _GridVelocityBufferRead[c_id_yn].y : 0.0f) - c_vel.y);
-        divergence += _DivergenceParameter.z * ((c_index_zn.z < _GridSize.z ? _GridVelocityBufferRead[c_id_zn].z : 0.0f) - c_vel.z);
+        divergence += _DivergenceParameter.x * (_GridVelocityBufferRead[c_id_xn].x - _GridVelocityBufferRead[c_id_xp].x);
+        divergence += _DivergenceParameter.y * (_GridVelocityBufferRead[c_id_yn].y - _GridVelocityBufferRead[c_id_yp].y);
+        divergence += _DivergenceParameter.z * (_GridVelocityBufferRead[c_id_zn].z - _GridVelocityBufferRead[c_id_zp].z);
     }
 
     _GridDivergenceBufferWrite[c_id] = divergence;
@@ -83,18 +84,17 @@ void UpdateVelocity(uint3 id : SV_DispatchThreadID)
     const uint3 c_index = CellIDToCellIndex(c_id);
 
     const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
     const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
     const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+    const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
-    float3 c_vel = _GridVelocityBufferRW[c_id];
+    float3 velocity = _GridVelocityBufferRW[c_id];
 
-    const float p = _GridPressureBufferRead[c_id];
+    velocity.x -= _PressureProjectionParameter2.x * (_GridPressureBufferRead[c_id_xn] - _GridPressureBufferRead[c_id_xp]);
+    velocity.y -= _PressureProjectionParameter2.y * (_GridPressureBufferRead[c_id_yn] - _GridPressureBufferRead[c_id_yp]);
+    velocity.z -= _PressureProjectionParameter2.z * (_GridPressureBufferRead[c_id_zn] - _GridPressureBufferRead[c_id_zp]);
 
-    c_vel.x -= _PressureProjectionParameter2.x * (p - _GridPressureBufferRead[c_id_xp]);
-    c_vel.y -= _PressureProjectionParameter2.y * (p - _GridPressureBufferRead[c_id_yp]);
-    c_vel.z -= _PressureProjectionParameter2.z * (p - _GridPressureBufferRead[c_id_zp]);
-
-    ENFORCE_BOUNDARY_CONDITION(c_index, c_vel);
-
-    _GridVelocityBufferRW[c_id] = c_vel;
+    _GridVelocityBufferRW[c_id] = velocity;
 }

@@ -2,6 +2,11 @@
 
 #include "../Common.hlsl"
 
+float3 _Gravity;
+float3 _RayOrigin;
+float3 _RayDirection;
+float4 _MouseForceParameter; // x,y,z: Force w: Range
+
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
 
 inline float GetMouseForce(float3 pos)
@@ -19,21 +24,15 @@ void AddExternalForce(uint3 id : SV_DispatchThreadID)
     const uint c_id = id.x;
     const uint3 c_index = CellIDToCellIndex(c_id);
 
-    float3 c_vel = _GridVelocityBufferRW[c_id];
+    float3 velocity = _GridVelocityBufferRW[c_id];
 
     // forward Euler time integration
-    c_vel += _Gravity * _DeltaTime;
+    velocity += _Gravity * _DeltaTime;
 
     // add mouse force
-    const float3 c_pos = CellIndexToCellPos(c_index);
-    const float3 c_pos_vx = c_pos + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
-    const float3 c_pos_vy = c_pos + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
-    const float3 c_pos_vz = c_pos + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
-    float3 mouse_force = float3(GetMouseForce(c_pos_vx), GetMouseForce(c_pos_vy), GetMouseForce(c_pos_vz));
-    mouse_force *= _MouseForceParameter.xyz;
-    c_vel += mouse_force * _DeltaTime;
+    const float3 position = CellIndexToCellPos(c_index);
+    const float3 mouse_force = GetMouseForce(position) * _MouseForceParameter.xyz;
+    velocity += mouse_force * _DeltaTime;
 
-    ENFORCE_BOUNDARY_CONDITION(c_index, c_vel);
-
-    _GridVelocityBufferRW[c_id] = c_vel;
+    _GridVelocityBufferRW[c_id] = velocity;
 }

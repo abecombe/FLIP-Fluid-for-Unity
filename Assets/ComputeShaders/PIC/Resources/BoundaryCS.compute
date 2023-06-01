@@ -1,0 +1,20 @@
+﻿#pragma kernel EnforceBoundaryCondition
+
+#include "../Common.hlsl"
+
+RWStructuredBuffer<float3> _GridVelocityBufferRW;
+
+[numthreads(128, 1, 1)]
+void EnforceBoundaryCondition(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float3 velocity = _GridVelocityBufferRW[c_id];
+
+    EnforceBoundaryCondition(velocity, c_index, _GridSize);
+
+    _GridVelocityBufferRW[c_id] = velocity;
+}
