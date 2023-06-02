@@ -73,7 +73,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     // Rendering Params
     [SerializeField] private Color _color = Color.red;
     [SerializeField] private float2 _densityVisibleRange = new(0f, 1f);
-    [SerializeField] private uint _numSamplingIteration = 30;
+    [SerializeField] private float _samplingDistance = 0.02f;
 
     [SerializeField] private bool _showFps = true;
     #endregion
@@ -337,7 +337,8 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
 
         _volumeRendering.SetColor("_Color", _color);
         _volumeRendering.SetTexture("_VolumeTexture", _gridDensityTexture);
-        _volumeRendering.SetInt("_Iteration", (int)_numSamplingIteration);
+        _volumeRendering.SetFloat("_SamplingDistance", _samplingDistance);
+        _volumeRendering.SetInt("_Iteration", (int)math.ceil(math.sqrt(3f) / _samplingDistance));
     }
     #endregion
 
@@ -403,7 +404,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
             UI.Indent(
                 UI.Field("Color", () => _color),
                 UI.Field("Density Visible Range", () => _densityVisibleRange),
-                UI.Field("Num Sampling Iteration", () => _numSamplingIteration)
+                UI.Field("Sampling Distance", () => _samplingDistance)
             ),
             UI.Space().SetHeight(10f),
             UI.Field("Show FPS", () => _showFps)

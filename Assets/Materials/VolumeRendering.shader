@@ -5,13 +5,14 @@ Shader "VolumeRendering/VolumeRendering"
 
     float3 _Color;
     sampler3D _VolumeTexture;
-    int _Iteration;
+    float _SamplingDistance;
+    uint _Iteration;
 
     struct v2f
     {
         float4 vertex : SV_POSITION;
-        float4 localPos : TEXCOORD0;
-        float4 worldPos : TEXCOORD1;
+        float3 localPos : TEXCOORD0;
+        float3 worldPos : TEXCOORD1;
     };
 
     // --------------------------------------------------------------------
@@ -31,19 +32,19 @@ Shader "VolumeRendering/VolumeRendering"
     // --------------------------------------------------------------------
     half4 Fragment(v2f i) : SV_Target
     {
-        float3 wdir = i.worldPos - _WorldSpaceCameraPos;
-        float3 ldir = normalize(mul(unity_WorldToObject, wdir));
-        float3 lstep = ldir / _Iteration;
-        float3 lpos = i.localPos;
+        const float3 world_dir = i.worldPos - _WorldSpaceCameraPos;
+        const float3 local_dir = normalize(mul(unity_WorldToObject, world_dir));
+        const float3 local_step = local_dir * _SamplingDistance;
+        float3 local_pos = i.localPos;
         float alpha = 0;
 
         [loop]
-        for (int i = 0; i < _Iteration; ++i)
+        for (uint i = 0; i < _Iteration; i++)
         {
-            float a = tex3D(_VolumeTexture, lpos + 0.5).r;
-            alpha += (1 - alpha) * a;
-            lpos += lstep;
-            if (!all(max(0.5 - abs(lpos), 0.0))) break;
+            const float val = tex3D(_VolumeTexture, local_pos + 0.5).r;
+            alpha += (1 - alpha) * val;
+            local_pos += local_step;
+            if (any(abs(local_pos) > 0.5f)) break;
         }
 
         return float4(_Color, alpha);
