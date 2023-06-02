@@ -1,5 +1,5 @@
-﻿#ifndef CS_PIC_GRID_PARAMS_SAMPLING_HLSL
-#define CS_PIC_GRID_PARAMS_SAMPLING_HLSL
+﻿#ifndef CS_SIMULATION_GRID_PARAMS_SAMPLING_HLSL
+#define CS_SIMULATION_GRID_PARAMS_SAMPLING_HLSL
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
@@ -130,4 +130,4 @@ inline float4 SampleGridParam(float3 position, RWStructuredBuffer<float4> grid_b
 }
 
 
-#endif /* CS_PIC_GRID_PARAMS_SAMPLING_HLSL */
+#endif /* CS_SIMULATION_GRID_PARAMS_SAMPLING_HLSL */

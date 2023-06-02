@@ -37,16 +37,16 @@ void CalcDivergence(uint3 thread_id : SV_DispatchThreadID)
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
 #endif
-        const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
-        const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
-        const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
-        const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
-        const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
-        const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
+    const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
+    const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
+    const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+    const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
-        divergence += _DivergenceParameter.x * (_GridVelocityBufferRead[c_id_xn].x - _GridVelocityBufferRead[c_id_xp].x);
-        divergence += _DivergenceParameter.y * (_GridVelocityBufferRead[c_id_yn].y - _GridVelocityBufferRead[c_id_yp].y);
-        divergence += _DivergenceParameter.z * (_GridVelocityBufferRead[c_id_zn].z - _GridVelocityBufferRead[c_id_zp].z);
+    divergence += _DivergenceParameter.x * (_GridVelocityBufferRead[c_id_xn].x - _GridVelocityBufferRead[c_id_xp].x);
+    divergence += _DivergenceParameter.y * (_GridVelocityBufferRead[c_id_yn].y - _GridVelocityBufferRead[c_id_yp].y);
+    divergence += _DivergenceParameter.z * (_GridVelocityBufferRead[c_id_zn].z - _GridVelocityBufferRead[c_id_zp].z);
 #if defined(FREE_SURFACE)
     }
 #endif
@@ -68,18 +68,18 @@ void Project(uint3 thread_id : SV_DispatchThreadID)
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
 #endif
-        // project using Jacobi iterations
-        const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
-        const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
-        const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
-        const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
-        const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
-        const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
+    // project using Jacobi iterations
+    const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
+    const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
+    const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
+    const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
-        pressure += _PressureProjectionParameter1.x * (_GridPressureBufferRead[c_id_xp] + _GridPressureBufferRead[c_id_xn]);
-        pressure += _PressureProjectionParameter1.y * (_GridPressureBufferRead[c_id_yp] + _GridPressureBufferRead[c_id_yn]);
-        pressure += _PressureProjectionParameter1.z * (_GridPressureBufferRead[c_id_zp] + _GridPressureBufferRead[c_id_zn]);
-        pressure += _PressureProjectionParameter1.w * _GridDivergenceBufferRead[c_id];
+    pressure += _PressureProjectionParameter1.x * (_GridPressureBufferRead[c_id_xp] + _GridPressureBufferRead[c_id_xn]);
+    pressure += _PressureProjectionParameter1.y * (_GridPressureBufferRead[c_id_yp] + _GridPressureBufferRead[c_id_yn]);
+    pressure += _PressureProjectionParameter1.z * (_GridPressureBufferRead[c_id_zp] + _GridPressureBufferRead[c_id_zn]);
+    pressure += _PressureProjectionParameter1.w * _GridDivergenceBufferRead[c_id];
 #if defined(FREE_SURFACE)
     }
 #endif
