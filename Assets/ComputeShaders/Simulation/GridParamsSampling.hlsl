@@ -110,14 +110,14 @@ const float3 g_pos = (POS - _GridMin) * _GridInvSpacing;\
 SAMPLE_GRID_PARAM(VALUE, g_pos, GRID_BUFFER, z)\
 }\
 
-inline float SampleGridScalar(float3 pos, StructuredBuffer<float> grid_buffer)
+inline float SampleGridParam(float3 pos, StructuredBuffer<float> grid_buffer)
 {
     float value = 0;
     SAMPLE_GRID_SCALAR(value, pos, grid_buffer)
     return value;
 }
 
-inline float3 SampleGridVector(float3 pos, StructuredBuffer<float3> grid_buffer)
+inline float3 SampleGridParam(float3 pos, StructuredBuffer<float3> grid_buffer)
 {
     float3 value = 0;
     SAMPLE_GRID_VECTOR_X(value.x, pos, grid_buffer)

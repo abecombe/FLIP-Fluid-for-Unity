@@ -26,9 +26,9 @@ void AdvectVelocity(uint3 thread_id : SV_DispatchThreadID)
 
     const float3 position = CellIndexToWorldPos(c_index);
 
-    const float3 middle_pos = position - SampleGridVector(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
-    const float3 sample_pos = position - SampleGridVector(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
-    const float3 velocity = SampleGridVector(sample_pos, _GridVelocityBufferRead);
+    const float3 middle_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
+    const float3 sample_pos = position - SampleGridParam(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 velocity = SampleGridParam(sample_pos, _GridVelocityBufferRead);
 
     _GridVelocityBufferWrite[c_id] = velocity;
 }
@@ -43,10 +43,10 @@ void AdvectScalar(uint3 thread_id : SV_DispatchThreadID)
 
     const float3 position = CellIndexToWorldPos(c_index);
 
-    const float3 middle_pos = position - SampleGridVector(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
-    const float3 sample_pos = position - SampleGridVector(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
-    float density = SampleGridScalar(sample_pos, _GridDensityBufferRead);
-    float temperature = SampleGridScalar(sample_pos, _GridTemperatureBufferRead);
+    const float3 middle_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
+    const float3 sample_pos = position - SampleGridParam(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
+    float density = SampleGridParam(sample_pos, _GridDensityBufferRead);
+    float temperature = SampleGridParam(sample_pos, _GridTemperatureBufferRead);
 
     density *= _ScalarFieldDecay.x;
     temperature *= _ScalarFieldDecay.y;

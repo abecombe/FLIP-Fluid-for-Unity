@@ -194,7 +194,7 @@ void UpdatePosition(uint3 thread_id : SV_DispatchThreadID)
 
     Particle p = _ParticleBufferRW[p_id];
 
-    p.position += SampleGridVector(p.position, _GridPositionModifyBufferRead);
+    p.position += SampleGridParam(p.position, _GridPositionModifyBufferRead);
 
     ClampPosition(p.position, _GridMin, _GridMax);
 

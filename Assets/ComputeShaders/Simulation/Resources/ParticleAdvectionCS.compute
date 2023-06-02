@@ -23,20 +23,20 @@ void Advect(uint3 thread_id : SV_DispatchThreadID)
 
 #if defined(USE_RK1)
     // advect using RK1 (Forward Euler)
-    const float3 k1 = SampleGridVector(p.position, _GridVelocityBufferRead);
+    const float3 k1 = SampleGridParam(p.position, _GridVelocityBufferRead);
     const float3 velocity = 1.0f * k1;
 
 #elif defined(USE_RK2)
     // advect using RK2 (Explicit midpoint method)
-    const float3 k1 = SampleGridVector(p.position, _GridVelocityBufferRead);
-    const float3 k2 = SampleGridVector(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
+    const float3 k1 = SampleGridParam(p.position, _GridVelocityBufferRead);
+    const float3 k2 = SampleGridParam(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
     const float3 velocity = 0.0f * k1 + 1.0f * k2;
 
 #elif defined(USE_RK3)
     // advect using RK3 (Ralston's third-order method)
-    const float3 k1 = SampleGridVector(p.position, _GridVelocityBufferRead);
-    const float3 k2 = SampleGridVector(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
-    const float3 k3 = SampleGridVector(p.position + 0.75f * _DeltaTime * k2, _GridVelocityBufferRead);
+    const float3 k1 = SampleGridParam(p.position, _GridVelocityBufferRead);
+    const float3 k2 = SampleGridParam(p.position + 0.5f * _DeltaTime * k1, _GridVelocityBufferRead);
+    const float3 k3 = SampleGridParam(p.position + 0.75f * _DeltaTime * k2, _GridVelocityBufferRead);
     const float3 velocity = 2.0f / 9.0f * k1 + 1.0f / 3.0f * k2 + 4.0f / 9.0f * k3;
 
 #else

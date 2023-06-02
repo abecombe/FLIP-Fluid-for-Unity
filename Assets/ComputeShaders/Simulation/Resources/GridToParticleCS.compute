@@ -21,8 +21,8 @@ void GridToParticle(uint3 thread_id : SV_DispatchThreadID)
 
     Particle p = _ParticleBufferRW[p_id];
 
-    const float3 g_origin_vel = SampleGridVector(p.position, _GridOriginalVelocityBufferRead);
-    const float3 g_vel = SampleGridVector(p.position, _GridVelocityBufferRead);
+    const float3 g_origin_vel = SampleGridParam(p.position, _GridOriginalVelocityBufferRead);
+    const float3 g_vel = SampleGridParam(p.position, _GridVelocityBufferRead);
 
     const float3 p_pic_vel = g_vel;
     const float3 p_flip_vel = p.velocity + (g_vel - g_origin_vel);
