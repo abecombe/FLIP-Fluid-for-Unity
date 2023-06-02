@@ -2,7 +2,7 @@
 
 public class OrbitCamera : MonoBehaviour
 {
-    public float Distance => _distance;
+    public float Distance { get; private set; } = 20f;
 
     [SerializeField]
     private float _rotationSensitivity = 5f;
@@ -14,7 +14,6 @@ public class OrbitCamera : MonoBehaviour
     private float _zoomMiddleClickSensitivity = 1f;
 
     private float _lookAtHeight = 1f;
-    private float _distance = 20f;
     private float _azimuthalAngle = 45f;
     private float _polarAngle = 75f;
 
@@ -57,8 +56,8 @@ public class OrbitCamera : MonoBehaviour
 
     private void UpdateDistance(float scroll)
     {
-        _distance -= scroll;
-        _distance = Mathf.Clamp(_distance, 0.1f, 40f);
+        Distance -= scroll;
+        Distance = Mathf.Clamp(Distance, 0.1f, 40f);
     }
 
     private void UpdatePosition()
@@ -66,9 +65,9 @@ public class OrbitCamera : MonoBehaviour
         var da = _azimuthalAngle * Mathf.Deg2Rad;
         var dp = _polarAngle * Mathf.Deg2Rad;
         Camera.main.transform.position = new Vector3(
-            _distance * Mathf.Sin(dp) * Mathf.Cos(da),
-            _distance * Mathf.Cos(dp) + _lookAtHeight,
-            _distance * Mathf.Sin(dp) * Mathf.Sin(da));
+            Distance * Mathf.Sin(dp) * Mathf.Cos(da),
+            Distance * Mathf.Cos(dp) + _lookAtHeight,
+            Distance * Mathf.Sin(dp) * Mathf.Sin(da));
     }
 
     private void UpdateDirection()

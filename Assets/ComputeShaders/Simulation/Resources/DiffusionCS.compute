@@ -18,12 +18,12 @@ StructuredBuffer<float3> _GridDiffusionBufferRead;
 RWStructuredBuffer<float3> _GridDiffusionBufferWrite;
 
 [numthreads(128, 1, 1)]
-void Diffuse(uint3 id : SV_DispatchThreadID)
+void Diffuse(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     // diffuse using Jacobi iterations
     const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
@@ -57,12 +57,12 @@ void Diffuse(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void UpdateVelocity(uint3 id : SV_DispatchThreadID)
+void UpdateVelocity(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     const float3 velocity = _GridDiffusionBufferRead[c_id];
 

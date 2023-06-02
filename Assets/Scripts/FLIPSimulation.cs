@@ -449,7 +449,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         }
 
         // calc grid delta position
-        float3 projectionParameter2 = 1f / GridSpacing;
+        float3 projectionParameter2 = 1f / (2f * GridSpacing);
         cs.SetVector("_DensityProjectionParameter2", projectionParameter2);
         k_delpos.SetBuffer("_GridDensityPressureBufferRead", _gridDensityPressureBuffer.Read);
         k_delpos.SetBuffer("_GridPositionModifyBufferWrite", _gridPositionModifyBuffer);

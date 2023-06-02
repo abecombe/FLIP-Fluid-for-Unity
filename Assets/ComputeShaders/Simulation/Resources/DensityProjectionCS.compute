@@ -44,17 +44,17 @@ RWStructuredBuffer<float> _GridDensityPressureBufferWrite;
 StructuredBuffer<float3> _GridPositionModifyBufferRead;
 RWStructuredBuffer<float3> _GridPositionModifyBufferWrite;
 
-static const int gridRange[6] = { -1, 1, -1, 1, -1, 1 };
+static const int grid_range[6] = { -1, 1, -1, 1, -1, 1 };
 
 [numthreads(128, 1, 1)]
-void BuildGhostWeight(uint3 id : SV_DispatchThreadID)
+void BuildGhostWeight(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
-    const bool3 edge = c_index % (_GridSize - 1) == 0;
+    const bool3 edge = (uint)c_index % (uint)(_GridSize - 1) == 0;
     const int edge_count = (int)edge.x + (int)edge.y + (int)edge.z;
 
     float ghost_weight = 0;
@@ -66,53 +66,53 @@ void BuildGhostWeight(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void InitBuffer(uint3 id : SV_DispatchThreadID)
+void InitBuffer(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     _GridTypeBufferWrite[c_id] = 0;
     _GridUIntWeightBufferWrite[c_id] = 0;
 }
 
 [numthreads(128,1,1)]
-void InterlockedAddWeight(uint3 id : SV_DispatchThreadID)
+void InterlockedAddWeight(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint p_id = id.x;
+    const uint p_id = thread_id.x;
 
     const float3 p_pos = _ParticleBufferRead[p_id].position;
 
-    const uint3 c_index = PosToCellIndex(p_pos);
+    const int3 c_index = WorldPosToCellIndex(p_pos);
     const uint c_id = CellIndexToCellID(c_index);
 
     InterlockedMax(_GridTypeBufferWrite[c_id], GT_FLUID);
 
-    FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, gridRange)
+    FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, grid_range)
     {
-        const float weight = GetWeight(p_pos, CellIndexToCellPos(nc_index), _GridInvSpacing);
+        const float weight = GetWeight(p_pos, CellIndexToWorldPos(nc_index), _GridInvSpacing);
         InterlockedAdd(_GridUIntWeightBufferWrite[nc_id], ConvertFloat2UInt(weight));
     }
     FOR_EACH_NEIGHBOR_CELL_END
 }
 
 [numthreads(128,1,1)]
-void CalcGridWeight(uint3 id : SV_DispatchThreadID)
+void CalcGridWeight(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float sum_weight = 0;
 
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
         bool neighbor_air = false;
-        FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, gridRange)
+        FOR_EACH_NEIGHBOR_CELL_START(c_index, nc_index, nc_id, grid_range)
         {
             if (_GridTypeBufferRead[nc_id] == GT_AIR)
                 neighbor_air = true;
@@ -134,12 +134,12 @@ void CalcGridWeight(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void Project(uint3 id : SV_DispatchThreadID)
+void Project(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float pressure = 0;
 
@@ -163,33 +163,34 @@ void Project(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void CalcPositionModify(uint3 id : SV_DispatchThreadID)
+void CalcPositionModify(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
+    const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
     const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
+    const uint c_id_yn = CellIndexToCellID(c_index + int3(0, 1, 0));
     const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
-
-    const float p = _GridDensityPressureBufferRead[c_id];
+    const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
     float3 del_pos;
-    del_pos.x = _DensityProjectionParameter2.x * (p - _GridDensityPressureBufferRead[c_id_xp]);
-    del_pos.y = _DensityProjectionParameter2.y * (p - _GridDensityPressureBufferRead[c_id_yp]);
-    del_pos.z = _DensityProjectionParameter2.z * (p - _GridDensityPressureBufferRead[c_id_zp]);
+    del_pos.x = _DensityProjectionParameter2.x * (_GridDensityPressureBufferRead[c_id_xn] - _GridDensityPressureBufferRead[c_id_xp]);
+    del_pos.y = _DensityProjectionParameter2.y * (_GridDensityPressureBufferRead[c_id_yn] - _GridDensityPressureBufferRead[c_id_yp]);
+    del_pos.z = _DensityProjectionParameter2.z * (_GridDensityPressureBufferRead[c_id_zn] - _GridDensityPressureBufferRead[c_id_zp]);
 
     _GridPositionModifyBufferWrite[c_id] = del_pos;
 }
 
 [numthreads(128, 1, 1)]
-void UpdatePosition(uint3 id : SV_DispatchThreadID)
+void UpdatePosition(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint p_id = id.x;
+    const uint p_id = thread_id.x;
 
     Particle p = _ParticleBufferRW[p_id];
 

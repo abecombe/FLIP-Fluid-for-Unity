@@ -5,12 +5,12 @@
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
 
 [numthreads(128, 1, 1)]
-void EnforceBoundaryCondition(uint3 id : SV_DispatchThreadID)
+void EnforceBoundaryCondition(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float3 velocity = _GridVelocityBufferRW[c_id];
 

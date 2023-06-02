@@ -17,14 +17,14 @@ RWStructuredBuffer<float> _GridDensityBufferWrite;
 RWStructuredBuffer<float> _GridTemperatureBufferWrite;
 
 [numthreads(128, 1, 1)]
-void AdvectVelocity(uint3 id : SV_DispatchThreadID)
+void AdvectVelocity(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
-    const float3 position = CellIndexToCellPos(c_index);
+    const float3 position = CellIndexToWorldPos(c_index);
 
     const float3 middle_pos = position - SampleGridVector(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
     const float3 sample_pos = position - SampleGridVector(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
@@ -34,14 +34,14 @@ void AdvectVelocity(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void AdvectScalar(uint3 id : SV_DispatchThreadID)
+void AdvectScalar(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
-    const float3 position = CellIndexToCellPos(c_index);
+    const float3 position = CellIndexToWorldPos(c_index);
 
     const float3 middle_pos = position - SampleGridVector(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
     const float3 sample_pos = position - SampleGridVector(middle_pos, _GridVelocityBufferRead) * _DeltaTime;

@@ -10,12 +10,12 @@ StructuredBuffer<float> _GridTemperatureBufferRead;
 float3 _BuoyancyParameter; // α, β, ambient temperature
 
 [numthreads(128, 1, 1)]
-void AddBuoyancy(uint3 id : SV_DispatchThreadID)
+void AddBuoyancy(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float3 velocity = _GridVelocityBufferRW[c_id];
 

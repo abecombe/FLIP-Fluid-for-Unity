@@ -9,20 +9,20 @@ float4 _MouseForceParameter; // x,y,z: Force w: Range
 
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
 
-inline float GetMouseForce(float3 pos)
+inline float GetMouseForce(float3 position)
 {
-    const float distance_to_mouse_ray = length(cross(_RayDirection, pos - _RayOrigin));
+    const float distance_to_mouse_ray = length(cross(_RayDirection, position - _RayOrigin));
     const float normalized_distance = distance_to_mouse_ray / _MouseForceParameter.w;
     return smoothstep(1.0, 0.9, normalized_distance);
 }
 
 [numthreads(128, 1, 1)]
-void AddExternalForce(uint3 id : SV_DispatchThreadID)
+void AddExternalForce(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float3 velocity = _GridVelocityBufferRW[c_id];
 
@@ -30,7 +30,7 @@ void AddExternalForce(uint3 id : SV_DispatchThreadID)
     velocity += _Gravity * _DeltaTime;
 
     // add mouse force
-    const float3 position = CellIndexToCellPos(c_index);
+    const float3 position = CellIndexToWorldPos(c_index);
     const float3 mouse_force = GetMouseForce(position) * _MouseForceParameter.xyz;
     velocity += mouse_force * _DeltaTime;
 

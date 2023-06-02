@@ -33,59 +33,59 @@ inline uint PCG1Base(uint value)
 inline uint2 PCG2Base(uint2 value)
 {
     uint2 v = value;
-    
+
     v = v * 1664525u + 1013904223u;
-    
+
     v.x += v.y * 1664525u;
     v.y += v.x * 1664525u;
-    
+
     v ^= v >> 16u;
-    
+
     v.x += v.y * 1664525u;
     v.y += v.x * 1664525u;
-    
+
     v ^= v >> 16u;
-    
+
     return v;
 }
 
 inline uint3 PCG3Base(uint3 value)
 {
     uint3 v = value;
-    
+
     v = v * 1664525u + 1013904223u;
-    
+
     v.x += v.y * v.z;
     v.y += v.z * v.x;
     v.z += v.x * v.y;
-    
+
     v ^= v >> 16u;
-    
+
     v.x += v.y * v.z;
     v.y += v.z * v.x;
     v.z += v.x * v.y;
-    
+
     return v;
 }
 
 inline uint4 PCG4Base(uint4 value)
 {
     uint4 v = value;
-    
+
     v = v * 1664525u + 1013904223u;
-    
+
     v.x += v.y * v.w;
     v.y += v.z * v.x;
     v.z += v.x * v.y;
     v.w += v.y * v.z;
-    
+
     v ^= v >> 16u;
-    
+
     v.x += v.y * v.w;
     v.y += v.z * v.x;
     v.z += v.x * v.y;
     v.w += v.y * v.z;
-    
+
     return v;
 }
 

@@ -7,18 +7,18 @@ RWStructuredBuffer<float> _GridDensityBufferRW;
 RWStructuredBuffer<float> _GridTemperatureBufferRW;
 
 [numthreads(128, 1, 1)]
-void Emit(uint3 id : SV_DispatchThreadID)
+void Emit(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     float3 velocity = _GridVelocityBufferRW[c_id];
     float density = _GridDensityBufferRW[c_id];
     float temperature = _GridTemperatureBufferRW[c_id];
 
-    const float3 position = CellIndexToCellPos(c_index);
+    const float3 position = CellIndexToWorldPos(c_index);
     if (distance(position, float3(0.0f, -7.5f, 0.0f)) < 1.5f)
     {
         velocity = float3(0.0f, 10.0f, 0.0f);

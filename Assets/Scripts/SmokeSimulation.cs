@@ -410,6 +410,8 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
             .RegisterValueChangeCallback(() => {
                 FindObjectOfType<FPSCounter>().enabled = _showFps;
             }),
+            UI.Space().SetHeight(10f),
+            UI.Button("Restart", InitGPUBuffers),
             UI.Space().SetHeight(5f)
             )))
         );
