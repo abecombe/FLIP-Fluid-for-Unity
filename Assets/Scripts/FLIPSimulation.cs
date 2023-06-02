@@ -62,23 +62,23 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private float3 GridInvSpacing => 1f / GridSpacing;
 
     // Particle Data Buffers
-    private readonly GPUDoubleBuffer<Particle> _particleBuffer = new();
-    private readonly GPUBuffer<float4> _particleRenderingBuffer = new(); // xyz: position, w: speed
+    private GPUDoubleBuffer<Particle> _particleBuffer = new();
+    private GPUBuffer<float4> _particleRenderingBuffer = new(); // xyz: position, w: speed
 
     // Grid Data Buffers
-    private readonly GPUBuffer<uint2> _gridParticleIDBuffer = new();
-    private readonly GPUBuffer<uint> _gridTypeBuffer = new();
-    private readonly GPUBuffer<float3> _gridVelocityBuffer = new();
-    private readonly GPUBuffer<float3> _gridOriginalVelocityBuffer = new();
-    private readonly GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
-    private readonly GPUBuffer<float> _gridDivergenceBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridPressureBuffer = new();
-    private readonly GPUBuffer<float> _gridWeightBuffer = new();
-    private readonly GPUBuffer<float> _gridGhostWeightBuffer = new();
-    private readonly GPUBuffer<uint> _gridUIntWeightBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridDensityPressureBuffer = new();
-    private readonly GPUBuffer<float3> _gridPositionModifyBuffer = new();
-    private readonly GPUBuffer<float> _gridFloatZeroBuffer = new();
+    private GPUBuffer<uint2> _gridParticleIDBuffer = new();
+    private GPUBuffer<uint> _gridTypeBuffer = new();
+    private GPUBuffer<float3> _gridVelocityBuffer = new();
+    private GPUBuffer<float3> _gridOriginalVelocityBuffer = new();
+    private GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
+    private GPUBuffer<float> _gridDivergenceBuffer = new();
+    private GPUDoubleBuffer<float> _gridPressureBuffer = new();
+    private GPUBuffer<float> _gridWeightBuffer = new();
+    private GPUBuffer<float> _gridGhostWeightBuffer = new();
+    private GPUBuffer<uint> _gridUIntWeightBuffer = new();
+    private GPUDoubleBuffer<float> _gridDensityPressureBuffer = new();
+    private GPUBuffer<float3> _gridPositionModifyBuffer = new();
+    private GPUBuffer<float> _gridFloatZeroBuffer = new();
 
     // Compute Shaders
     private GPUComputeShader _particleInitCs;
@@ -93,7 +93,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private GPUComputeShader _renderingCs;
 
     // Grid Sort Helper
-    private readonly GridSortHelper<Particle> _gridSortHelper = new();
+    private GridSortHelper<Particle> _gridSortHelper = new();
 
     // Simulation Params
     [SerializeField] [Tooltip("0 is full PIC, 1 is full FLIP")] [Range(0f, 1f)] private float _flipness = 0.99f;
