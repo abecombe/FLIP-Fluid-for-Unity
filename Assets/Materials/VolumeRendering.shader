@@ -11,7 +11,6 @@ Shader "VolumeRendering/VolumeRendering"
     struct v2f
     {
         float4 vertex : SV_POSITION;
-        float3 localPos : TEXCOORD0;
         float3 worldPos : TEXCOORD1;
     };
 
@@ -22,7 +21,6 @@ Shader "VolumeRendering/VolumeRendering"
     {
         v2f o;
         o.vertex = UnityObjectToClipPos(v.vertex);
-        o.localPos = v.vertex;
         o.worldPos = mul(unity_ObjectToWorld, v.vertex);
         return o;
     }
@@ -30,19 +28,19 @@ Shader "VolumeRendering/VolumeRendering"
     // --------------------------------------------------------------------
     // Fragment Shader
     // --------------------------------------------------------------------
-    half4 Fragment(v2f i) : SV_Target
+    float4 Fragment(v2f i, int facing : VFACE) : SV_Target
     {
         const float3 world_dir = i.worldPos - _WorldSpaceCameraPos;
         const float3 local_dir = normalize(mul(unity_WorldToObject, world_dir));
         const float3 local_step = local_dir * _SamplingDistance;
-        float3 local_pos = i.localPos;
-        float alpha = 0;
+        float3 local_pos = mul(unity_WorldToObject, facing == 1 ? i.worldPos : _WorldSpaceCameraPos);
 
+        float alpha = 0;
         [loop]
-        for (uint i = 0; i < _Iteration; i++)
+        for (uint iter = 0; iter < _Iteration; iter++)
         {
-            const float val = tex3D(_VolumeTexture, local_pos + 0.5).r;
-            alpha += (1 - alpha) * val;
+            const float value = tex3D(_VolumeTexture, local_pos + 0.5f).r;
+            alpha += (1.0f - alpha) * value;
             local_pos += local_step;
             if (any(abs(local_pos) > 0.5f)) break;
         }
@@ -61,7 +59,7 @@ Shader "VolumeRendering/VolumeRendering"
             "RenderType" = "Transparent"
         }
 
-        Cull Back
+        Cull Off
         ZWrite Off
         Blend SrcAlpha OneMinusSrcAlpha
 

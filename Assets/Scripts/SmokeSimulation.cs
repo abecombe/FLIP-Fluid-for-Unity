@@ -73,7 +73,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     // Rendering Params
     [SerializeField] private Color _color = Color.red;
     [SerializeField] private float2 _densityVisibleRange = new(0f, 1f);
-    [SerializeField] private float _samplingDistance = 0.02f;
+    [SerializeField] [Range(0.001f, 0.1f)] private float _samplingDistance = 0.01f;
 
     [SerializeField] private bool _showFps = true;
     #endregion
