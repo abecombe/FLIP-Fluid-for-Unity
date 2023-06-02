@@ -1,11 +1,15 @@
 ﻿#pragma kernel Diffuse
 #pragma kernel UpdateVelocity
 
+#pragma multi_compile _ FREE_SURFACE NO_SURFACE
+
 #include "../Common.hlsl"
 
 float4 _DiffusionParameter;
 
+#if defined(FREE_SURFACE)
 StructuredBuffer<uint> _GridTypeBufferRead;
+#endif
 
 StructuredBuffer<float3> _GridVelocityBufferRead;
 RWStructuredBuffer<float3> _GridVelocityBufferWrite;
@@ -31,6 +35,7 @@ void Diffuse(uint3 id : SV_DispatchThreadID)
 
     float3 velocity = 0;
 
+#if defined(FREE_SURFACE)
     velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xp] == GT_FLUID ? c_id_xp : c_id];
     velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xn] == GT_FLUID ? c_id_xn : c_id];
     velocity += _DiffusionParameter.y * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_yp] == GT_FLUID ? c_id_yp : c_id];
@@ -38,6 +43,15 @@ void Diffuse(uint3 id : SV_DispatchThreadID)
     velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zp] == GT_FLUID ? c_id_zp : c_id];
     velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zn] == GT_FLUID ? c_id_zn : c_id];
     velocity += _DiffusionParameter.w * _GridVelocityBufferRead[c_id];
+#else
+    velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[c_id_xp];
+    velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[c_id_xn];
+    velocity += _DiffusionParameter.y * _GridDiffusionBufferRead[c_id_yp];
+    velocity += _DiffusionParameter.y * _GridDiffusionBufferRead[c_id_yn];
+    velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[c_id_zp];
+    velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[c_id_zn];
+    velocity += _DiffusionParameter.w * _GridVelocityBufferRead[c_id];
+#endif
 
     _GridDiffusionBufferWrite[c_id] = velocity;
 }

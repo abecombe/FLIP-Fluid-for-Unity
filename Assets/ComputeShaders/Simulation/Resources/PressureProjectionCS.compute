@@ -2,13 +2,17 @@
 #pragma kernel Project
 #pragma kernel UpdateVelocity
 
+#pragma multi_compile _ FREE_SURFACE NO_SURFACE
+
 #include "../Common.hlsl"
 
 float3 _DivergenceParameter;
 float4 _PressureProjectionParameter1;
 float3 _PressureProjectionParameter2;
 
+#if defined(FREE_SURFACE)
 StructuredBuffer<uint> _GridTypeBufferRead;
+#endif
 
 StructuredBuffer<float3> _GridVelocityBufferRead;
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
@@ -29,8 +33,10 @@ void CalcDivergence(uint3 id : SV_DispatchThreadID)
 
     float divergence = 0;
 
+#if defined(FREE_SURFACE)
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
+#endif
         const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
         const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
         const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
@@ -41,7 +47,9 @@ void CalcDivergence(uint3 id : SV_DispatchThreadID)
         divergence += _DivergenceParameter.x * (_GridVelocityBufferRead[c_id_xn].x - _GridVelocityBufferRead[c_id_xp].x);
         divergence += _DivergenceParameter.y * (_GridVelocityBufferRead[c_id_yn].y - _GridVelocityBufferRead[c_id_yp].y);
         divergence += _DivergenceParameter.z * (_GridVelocityBufferRead[c_id_zn].z - _GridVelocityBufferRead[c_id_zp].z);
+#if defined(FREE_SURFACE)
     }
+#endif
 
     _GridDivergenceBufferWrite[c_id] = divergence;
 }
@@ -56,8 +64,10 @@ void Project(uint3 id : SV_DispatchThreadID)
 
     float pressure = 0;
 
+#if defined(FREE_SURFACE)
     if (_GridTypeBufferRead[c_id] == GT_FLUID)
     {
+#endif
         // project using Jacobi iterations
         const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
         const uint c_id_xn = CellIndexToCellID(c_index + int3(1, 0, 0));
@@ -70,7 +80,9 @@ void Project(uint3 id : SV_DispatchThreadID)
         pressure += _PressureProjectionParameter1.y * (_GridPressureBufferRead[c_id_yp] + _GridPressureBufferRead[c_id_yn]);
         pressure += _PressureProjectionParameter1.z * (_GridPressureBufferRead[c_id_zp] + _GridPressureBufferRead[c_id_zn]);
         pressure += _PressureProjectionParameter1.w * _GridDivergenceBufferRead[c_id];
+#if defined(FREE_SURFACE)
     }
+#endif
 
     _GridPressureBufferWrite[c_id] = pressure;
 }

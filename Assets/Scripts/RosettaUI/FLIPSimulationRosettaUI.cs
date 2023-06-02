@@ -2,7 +2,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(RosettaUIRoot))]
-public class RosettaUIController : MonoBehaviour
+public class FLIPSimulationRosettaUI : MonoBehaviour
 {
     [SerializeField]
     private KeyCode _toggleUIKey = KeyCode.U;

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace GPUUtil
 {
@@ -120,6 +121,60 @@ namespace GPUUtil
         public static implicit operator GraphicsBuffer(GPUBuffer<T> buffer)
         {
             return buffer.Data;
+        }
+    }
+
+    public class GPUTexture3D : IDisposable
+    {
+        public RenderTexture Data => _tex;
+        public int3 Size => new(_tex.width, _tex.height, _tex.volumeDepth);
+        public RenderTextureFormat Format => _tex.format;
+        public FilterMode FilterMode => _tex.filterMode;
+        public TextureWrapMode WrapMode => _tex.wrapMode;
+
+        private RenderTexture _tex;
+        private bool _inited = false;
+
+        public void Init(int3 size, RenderTextureFormat format, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            Dispose();
+            _tex = new RenderTexture(size.x, size.y, 0, format)
+            {
+                filterMode = filterMode,
+                wrapMode = wrapMode,
+                dimension = TextureDimension.Tex3D,
+                volumeDepth = size.z,
+                enableRandomWrite = true
+            };
+            _inited = true;
+        }
+
+        public void Dispose()
+        {
+            if (_inited) _tex.Release();
+            _inited = false;
+        }
+
+        public void CheckSizeChanged(int3 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            if (!_inited)
+            {
+                Init(size, format, filterMode, wrapMode);
+            }
+            else if (math.any(Size != size))
+            {
+                Init(size, Format, FilterMode, WrapMode);
+            }
+        }
+
+        public static implicit operator RenderTexture(GPUTexture3D tex)
+        {
+            return tex.Data;
+        }
+
+        public static implicit operator RenderTargetIdentifier(GPUTexture3D tex)
+        {
+            return tex.Data;
         }
     }
 

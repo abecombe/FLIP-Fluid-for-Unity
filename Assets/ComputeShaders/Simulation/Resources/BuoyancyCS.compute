@@ -1,0 +1,29 @@
+﻿#pragma kernel AddBuoyancy
+
+#include "../Common.hlsl"
+
+RWStructuredBuffer<float3> _GridVelocityBufferRW;
+
+StructuredBuffer<float> _GridDensityBufferRead;
+StructuredBuffer<float> _GridTemperatureBufferRead;
+
+float3 _BuoyancyParameter; // α, β, ambient temperature
+
+[numthreads(128, 1, 1)]
+void AddBuoyancy(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float3 velocity = _GridVelocityBufferRW[c_id];
+
+    const float density = _GridDensityBufferRead[c_id];
+    const float temperature = _GridTemperatureBufferRead[c_id];
+    const float force = -_BuoyancyParameter.x * density + _BuoyancyParameter.y * (temperature - _BuoyancyParameter.z);
+
+    velocity.y += force * _DeltaTime;
+
+    _GridVelocityBufferRW[c_id] = velocity;
+}

@@ -1,0 +1,32 @@
+﻿#pragma kernel Emit
+
+#include "../Common.hlsl"
+
+RWStructuredBuffer<float3> _GridVelocityBufferRW;
+RWStructuredBuffer<float> _GridDensityBufferRW;
+RWStructuredBuffer<float> _GridTemperatureBufferRW;
+
+[numthreads(128, 1, 1)]
+void Emit(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float3 velocity = _GridVelocityBufferRW[c_id];
+    float density = _GridDensityBufferRW[c_id];
+    float temperature = _GridTemperatureBufferRW[c_id];
+
+    const float3 position = CellIndexToCellPos(c_index);
+    if (distance(position, float3(0.0f, -7.5f, 0.0f)) < 1.5f)
+    {
+        velocity = float3(0.0f, 10.0f, 0.0f);
+        density = 1.0f;
+        temperature = 1.0f;
+    }
+
+    _GridVelocityBufferRW[c_id] = velocity;
+    _GridDensityBufferRW[c_id] = density;
+    _GridTemperatureBufferRW[c_id] = temperature;
+}

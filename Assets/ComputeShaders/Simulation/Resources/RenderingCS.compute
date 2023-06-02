@@ -1,0 +1,37 @@
+﻿#pragma kernel PrepareRendering
+#pragma kernel BakeTexture
+
+#include "../Common.hlsl"
+
+StructuredBuffer<Particle> _ParticleBufferRead;
+RWStructuredBuffer<float4> _ParticleRenderingBufferWrite;
+
+float2 _VisibleRange;
+RWStructuredBuffer<float> _GridBufferRead;
+RWTexture3D<float> _GridTextureWrite;
+
+[numthreads(128, 1, 1)]
+void PrepareRendering(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint p_id = id.x;
+
+    const Particle p = _ParticleBufferRead[p_id];
+
+    _ParticleRenderingBufferWrite[p_id] = float4(p.position, length(p.velocity));
+}
+
+[numthreads(128, 1, 1)]
+void BakeTexture(uint3 id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(id);
+
+    const uint c_id = id.x;
+    const uint3 c_index = CellIDToCellIndex(c_id);
+
+    float value = _GridBufferRead[c_id];
+    value = saturate((value - _VisibleRange.x) / (_VisibleRange.y - _VisibleRange.x));
+
+    _GridTextureWrite[c_index] = value;
+}
