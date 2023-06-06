@@ -404,7 +404,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
             UI.Indent(
                 UI.Field("Color", () => _color),
                 UI.Field("Density Visible Range", () => _densityVisibleRange),
-                UI.Field("Sampling Distance", () => _samplingDistance)
+                UI.Slider("Sampling Distance", () => _samplingDistance)
             ),
             UI.Space().SetHeight(10f),
             UI.Field("Show FPS", () => _showFps)
