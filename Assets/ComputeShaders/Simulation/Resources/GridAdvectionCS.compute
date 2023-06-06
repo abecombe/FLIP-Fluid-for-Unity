@@ -1,20 +1,23 @@
 ﻿#pragma kernel AdvectVelocity
+#pragma kernel AdvectVelocityMacCormack
+#pragma kernel AdvectVelocityBFECC
 #pragma kernel AdvectScalar
+#pragma kernel AdvectScalarMacCormack
+#pragma kernel AdvectScalarBFECC
 
 #define USE_LINEAR_KERNEL
 
 #include "../Common.hlsl"
 #include "../GridParamsSampling.hlsl"
 
-float2 _ScalarFieldDecay; // x: density, y: temperature
-
 StructuredBuffer<float3> _GridVelocityBufferRead;
-StructuredBuffer<float> _GridDensityBufferRead;
-StructuredBuffer<float> _GridTemperatureBufferRead;
+StructuredBuffer<float> _GridScalarBufferRead;
 
 RWStructuredBuffer<float3> _GridVelocityBufferWrite;
-RWStructuredBuffer<float> _GridDensityBufferWrite;
-RWStructuredBuffer<float> _GridTemperatureBufferWrite;
+RWStructuredBuffer<float> _GridScalarBufferWrite;
+
+float _Dissipation;
+float _DissipationTarget;
 
 [numthreads(128, 1, 1)]
 void AdvectVelocity(uint3 thread_id : SV_DispatchThreadID)
@@ -26,9 +29,50 @@ void AdvectVelocity(uint3 thread_id : SV_DispatchThreadID)
 
     const float3 position = CellIndexToWorldPos(c_index);
 
-    const float3 middle_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
-    const float3 sample_pos = position - SampleGridParam(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
-    const float3 velocity = SampleGridParam(sample_pos, _GridVelocityBufferRead);
+    const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
+
+    const float3 velocity = SampleGridParam(back_traced_pos, _GridVelocityBufferRead);
+
+    _GridVelocityBufferWrite[c_id] = velocity;
+}
+
+[numthreads(128, 1, 1)]
+void AdvectVelocityMacCormack(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const float3 position = CellIndexToWorldPos(c_index);
+
+    const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 forward_traced_pos = back_traced_pos + SampleGridParam(back_traced_pos, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 pos_error = (forward_traced_pos - position) * 0.5f;
+    const float3 corrected_back_traced_pos = back_traced_pos - pos_error;
+
+    const float3 velocity = SampleGridParam(corrected_back_traced_pos, _GridVelocityBufferRead);
+
+    _GridVelocityBufferWrite[c_id] = velocity;
+}
+
+[numthreads(128, 1, 1)]
+void AdvectVelocityBFECC(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const float3 position = CellIndexToWorldPos(c_index);
+
+    const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 forward_traced_pos = back_traced_pos + SampleGridParam(back_traced_pos, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 pos_error = (forward_traced_pos - position) * 0.5f;
+    const float3 corrected_pos = position - pos_error;
+    const float3 corrected_back_traced_pos = corrected_pos - SampleGridParam(corrected_pos, _GridVelocityBufferRead) * _DeltaTime;
+
+    const float3 velocity = SampleGridParam(corrected_back_traced_pos, _GridVelocityBufferRead);
 
     _GridVelocityBufferWrite[c_id] = velocity;
 }
@@ -43,14 +87,56 @@ void AdvectScalar(uint3 thread_id : SV_DispatchThreadID)
 
     const float3 position = CellIndexToWorldPos(c_index);
 
-    const float3 middle_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime * 0.5f;
-    const float3 sample_pos = position - SampleGridParam(middle_pos, _GridVelocityBufferRead) * _DeltaTime;
-    float density = SampleGridParam(sample_pos, _GridDensityBufferRead);
-    float temperature = SampleGridParam(sample_pos, _GridTemperatureBufferRead);
+    const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
 
-    density *= _ScalarFieldDecay.x;
-    temperature *= _ScalarFieldDecay.y;
+    float scalar = SampleGridParam(back_traced_pos, _GridScalarBufferRead);
 
-    _GridDensityBufferWrite[c_id] = density;
-    _GridTemperatureBufferWrite[c_id] = temperature;
+    scalar = (scalar - _DissipationTarget) * _Dissipation + _DissipationTarget;
+
+    _GridScalarBufferWrite[c_id] = scalar;
+}
+
+[numthreads(128, 1, 1)]
+ void AdvectScalarMacCormack(uint3 thread_id : SV_DispatchThreadID)
+ {
+     RETURN_IF_INVALID(thread_id);
+ 
+     const uint c_id = thread_id.x;
+     const int3 c_index = CellIDToCellIndex(c_id);
+
+     const float3 position = CellIndexToWorldPos(c_index);
+
+     const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
+     const float3 forward_traced_pos = back_traced_pos + SampleGridParam(back_traced_pos, _GridVelocityBufferRead) * _DeltaTime;
+     const float3 pos_error = (forward_traced_pos - position) * 0.5f;
+     const float3 corrected_back_traced_pos = back_traced_pos - pos_error;
+ 
+    float scalar = SampleGridParam(corrected_back_traced_pos, _GridScalarBufferRead);
+
+    scalar = (scalar - _DissipationTarget) * _Dissipation + _DissipationTarget;
+
+    _GridScalarBufferWrite[c_id] = scalar;
+ }
+
+[numthreads(128, 1, 1)]
+void AdvectScalarBFECC(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const float3 position = CellIndexToWorldPos(c_index);
+
+    const float3 back_traced_pos = position - SampleGridParam(position, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 forward_traced_pos = back_traced_pos + SampleGridParam(back_traced_pos, _GridVelocityBufferRead) * _DeltaTime;
+    const float3 pos_error = (forward_traced_pos - position) * 0.5f;
+    const float3 corrected_pos = position - pos_error;
+    const float3 corrected_back_traced_pos = corrected_pos - SampleGridParam(corrected_pos, _GridVelocityBufferRead) * _DeltaTime;
+
+    float scalar = SampleGridParam(corrected_back_traced_pos, _GridScalarBufferRead);
+
+    scalar = (scalar - _DissipationTarget) * _Dissipation + _DissipationTarget;
+
+    _GridScalarBufferWrite[c_id] = scalar;
 }

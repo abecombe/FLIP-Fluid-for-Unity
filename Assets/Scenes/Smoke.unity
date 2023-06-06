@@ -606,11 +606,13 @@ MonoBehaviour:
   _volumeRendering: {fileID: 2100000, guid: e89288e41590f9c42bd6513634b6b603, type: 2}
   _mouseForce: 2
   _mouseForceRange: 2.25
+  _velocityAdvectionMethod: 0
+  _scalarAdvectionMethod: 0
   _densityDissipation: 0.5
   _temperatureDissipation: 0.5
   _buoyancyAlpha: 5
   _buoyancyBeta: 0.97
-  _vorticityEpsilon: 0
+  _vorticityEpsilon: 10
   _viscosity: 0
   _diffusionJacobiIteration: 10
   _pressureProjectionJacobiIteration: 15

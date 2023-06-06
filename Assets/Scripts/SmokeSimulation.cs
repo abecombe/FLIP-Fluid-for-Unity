@@ -14,6 +14,13 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
         High,
         Ultra
     }
+
+    private enum AdvectionMethod
+    {
+        SemiLagrangian = 0,
+        MacCormack,
+        BFECC
+    }
     #endregion
     
     #region Properties
@@ -59,6 +66,8 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     // Simulation Params
     [SerializeField] [Range(0f, 5f)] private float _mouseForce = 2f;
     [SerializeField] [Range(0f, 5f)] private float _mouseForceRange = 2f;
+    [SerializeField] private AdvectionMethod _velocityAdvectionMethod = AdvectionMethod.SemiLagrangian;
+    [SerializeField] private AdvectionMethod _scalarAdvectionMethod = AdvectionMethod.SemiLagrangian;
     [SerializeField] [Range(0f, 2f)] private float _densityDissipation = 1f;
     [SerializeField] [Range(0f, 2f)] private float _temperatureDissipation = 1f;
     [SerializeField] private float _buoyancyAlpha = 0.08f;
@@ -82,7 +91,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     private void InitComputeShaders()
     {
         _emitterCs = new GPUComputeShader(Resources.Load<ComputeShader>("EmitterCS"), "Emit");
-        _gridAdvectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("GridAdvectionCS"), "AdvectVelocity", "AdvectScalar");
+        _gridAdvectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("GridAdvectionCS"), "AdvectVelocity", "AdvectVelocityMacCormack", "AdvectVelocityBFECC", "AdvectScalar", "AdvectScalarMacCormack", "AdvectScalarBFECC");
         _externalForceCs = new GPUComputeShader(Resources.Load<ComputeShader>("ExternalForceCS"), "AddExternalForce");
         _buoyancyCs = new GPUComputeShader(Resources.Load<ComputeShader>("BuoyancyCS"), "AddBuoyancy");
         _vorticityCs = new GPUComputeShader(Resources.Load<ComputeShader>("VorticityCS"), "CalcVorticity", "ConfineVorticity");
@@ -144,7 +153,7 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     private void DispatchVelocityAdvection()
     {
         var cs = _gridAdvectionCs;
-        var k = cs.Kernel[0];
+        var k = cs.Kernel[(int)_velocityAdvectionMethod];
 
         SetConstants(cs);
 
@@ -308,18 +317,24 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     private void DispatchScalarAdvection()
     {
         var cs = _gridAdvectionCs;
-        var k = cs.Kernel[1];
+        var k = cs.Kernel[3 + (int)_scalarAdvectionMethod];
 
         SetConstants(cs);
 
-        cs.SetVector("_ScalarFieldDecay", 1f - new float2(_densityDissipation, _temperatureDissipation) * DeltaTime);
         k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer.Read);
-        k.SetBuffer("_GridDensityBufferRead", _gridDensityBuffer.Read);
-        k.SetBuffer("_GridDensityBufferWrite", _gridDensityBuffer.Write);
-        k.SetBuffer("_GridTemperatureBufferRead", _gridTemperatureBuffer.Read);
-        k.SetBuffer("_GridTemperatureBufferWrite", _gridTemperatureBuffer.Write);
+        k.SetBuffer("_GridScalarBufferRead", _gridDensityBuffer.Read);
+        k.SetBuffer("_GridScalarBufferWrite", _gridDensityBuffer.Write);
+        cs.SetFloat("_Dissipation", 1f - _densityDissipation * DeltaTime);
+        cs.SetFloat("_DissipationTarget", 0f);
         k.Dispatch(NumGrids);
         _gridDensityBuffer.Swap();
+
+        k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer.Read);
+        k.SetBuffer("_GridScalarBufferRead", _gridTemperatureBuffer.Read);
+        k.SetBuffer("_GridScalarBufferWrite", _gridTemperatureBuffer.Write);
+        cs.SetFloat("_Dissipation", 1f - _temperatureDissipation * DeltaTime);
+        cs.SetFloat("_DissipationTarget", 0f);
+        k.Dispatch(NumGrids);
         _gridTemperatureBuffer.Swap();
     }
 
@@ -381,6 +396,8 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
             UI.Space().SetHeight(10f),
             UI.Label("Numerical Method"),
             UI.Indent(
+                UI.Field("Velocity Advection Method", () => _velocityAdvectionMethod),
+                UI.Field("Scalar Advection Method", () => _scalarAdvectionMethod)
             ),
             UI.Space().SetHeight(10f),
             UI.Label("Boundary"),
