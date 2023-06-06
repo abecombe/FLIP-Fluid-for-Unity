@@ -333,7 +333,7 @@ namespace GPUUtil
         }
         public void Dispatch(int3 size)
         {
-            var groupSize = (int3)math.ceil(size / (float3)_threadSize);
+            int3 groupSize = (int3)math.ceil(size / (float3)_threadSize);
             _cs.SetInts("_NumThreads", size.ToInts());
             _cs.SetInts("_NumGroups", groupSize.ToInts());
             _cs.Dispatch(_id, groupSize.x, groupSize.y, groupSize.z);
@@ -357,14 +357,14 @@ namespace GPUUtil
 
     public static class GPUCastTool
     {
-        public static int[] ToInts(this int2 i2) => new int[] { i2.x, i2.y };
-        public static int[] ToInts(this int3 i3) => new int[] { i3.x, i3.y, i3.z };
-        public static int[] ToInts(this int4 i4) => new int[] { i4.x, i4.y, i4.z, i4.w };
-        public static Vector4 ToVector(this int2 i2) => new Vector4(i2.x, i2.y);
-        public static Vector4 ToVector(this int3 i3) => new Vector4(i3.x, i3.y, i3.z);
-        public static Vector4 ToVector(this int4 i4) => new Vector4(i4.x, i4.y, i4.z, i4.w);
-        public static Vector4 ToVector(this float2 f2) => new Vector4(f2.x, f2.y);
-        public static Vector4 ToVector(this float3 f3) => new Vector4(f3.x, f3.y, f3.z);
-        public static Vector4 ToVector(this float4 f4) => new Vector4(f4.x, f4.y, f4.z, f4.w);
+        public static int[] ToInts(this int2 i2) => new[] { i2.x, i2.y };
+        public static int[] ToInts(this int3 i3) => new[] { i3.x, i3.y, i3.z };
+        public static int[] ToInts(this int4 i4) => new[] { i4.x, i4.y, i4.z, i4.w };
+        public static Vector4 ToVector(this int2 i2) => new(i2.x, i2.y);
+        public static Vector4 ToVector(this int3 i3) => new(i3.x, i3.y, i3.z);
+        public static Vector4 ToVector(this int4 i4) => new(i4.x, i4.y, i4.z, i4.w);
+        public static Vector4 ToVector(this float2 f2) => new(f2.x, f2.y);
+        public static Vector4 ToVector(this float3 f3) => new(f3.x, f3.y, f3.z);
+        public static Vector4 ToVector(this float4 f4) => new(f4.x, f4.y, f4.z, f4.w);
     }
 }

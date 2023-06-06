@@ -34,14 +34,14 @@ public class SmokeSimulation : MonoBehaviour, IDisposable
     private float3 GridInvSpacing => 1f / GridSpacing;
 
     // Grid Data Buffers
-    private readonly GPUDoubleBuffer<float3> _gridVelocityBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridDensityBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridTemperatureBuffer = new();
-    private readonly GPUBuffer<float4> _gridVorticityBuffer = new();
-    private readonly GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
-    private readonly GPUBuffer<float> _gridDivergenceBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridPressureBuffer = new();
-    private readonly GPUTexture3D _gridDensityTexture = new();
+    private GPUDoubleBuffer<float3> _gridVelocityBuffer = new();
+    private GPUDoubleBuffer<float> _gridDensityBuffer = new();
+    private GPUDoubleBuffer<float> _gridTemperatureBuffer = new();
+    private GPUBuffer<float4> _gridVorticityBuffer = new();
+    private GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
+    private GPUBuffer<float> _gridDivergenceBuffer = new();
+    private GPUDoubleBuffer<float> _gridPressureBuffer = new();
+    private GPUTexture3D _gridDensityTexture = new();
 
     // Compute Shaders
     private GPUComputeShader _emitterCs;
