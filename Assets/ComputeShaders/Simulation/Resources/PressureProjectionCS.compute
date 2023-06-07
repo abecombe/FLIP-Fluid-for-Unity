@@ -44,9 +44,9 @@ void CalcDivergence(uint3 thread_id : SV_DispatchThreadID)
     const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
     const uint c_id_zn = CellIndexToCellID(c_index + int3(0, 0, 1));
 
-    divergence += _DivergenceParameter.x * (_GridVelocityBufferRead[c_id_xn].x - _GridVelocityBufferRead[c_id_xp].x);
-    divergence += _DivergenceParameter.y * (_GridVelocityBufferRead[c_id_yn].y - _GridVelocityBufferRead[c_id_yp].y);
-    divergence += _DivergenceParameter.z * (_GridVelocityBufferRead[c_id_zn].z - _GridVelocityBufferRead[c_id_zp].z);
+    divergence += _DivergenceParameter.x * ((c_index.x == _GridSize.x - 1 ? 0 : _GridVelocityBufferRead[c_id_xn].x) - (c_index.x == 0 ? 0 : _GridVelocityBufferRead[c_id_xp].x));
+    divergence += _DivergenceParameter.y * ((c_index.y == _GridSize.y - 1 ? 0 : _GridVelocityBufferRead[c_id_yn].y) - (c_index.y == 0 ? 0 : _GridVelocityBufferRead[c_id_yp].y));
+    divergence += _DivergenceParameter.z * ((c_index.z == _GridSize.z - 1 ? 0 : _GridVelocityBufferRead[c_id_zn].z) - (c_index.z == 0 ? 0 : _GridVelocityBufferRead[c_id_zp].z));
 #if defined(FREE_SURFACE)
     }
 #endif
