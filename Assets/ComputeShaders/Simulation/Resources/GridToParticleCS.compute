@@ -5,22 +5,24 @@
 #include "../Common.hlsl"
 #include "../GridParamsSampling.hlsl"
 
+float _Flipness;
+
 RWStructuredBuffer<Particle> _ParticleBufferRW;
 
 StructuredBuffer<float3> _GridVelocityBufferRead;
 StructuredBuffer<float3> _GridOriginalVelocityBufferRead;
 
 [numthreads(128, 1, 1)]
-void GridToParticle(uint3 id : SV_DispatchThreadID)
+void GridToParticle(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint p_id = id.x;
+    const uint p_id = thread_id.x;
 
     Particle p = _ParticleBufferRW[p_id];
 
-    const float3 g_origin_vel = SampleGridParams(p.position, _GridOriginalVelocityBufferRead);
-    const float3 g_vel = SampleGridParams(p.position, _GridVelocityBufferRead);
+    const float3 g_origin_vel = SampleGridParam(p.position, _GridOriginalVelocityBufferRead);
+    const float3 g_vel = SampleGridParam(p.position, _GridVelocityBufferRead);
 
     const float3 p_pic_vel = g_vel;
     const float3 p_flip_vel = p.velocity + (g_vel - g_origin_vel);

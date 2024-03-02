@@ -6,34 +6,37 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.VFX;
 
-public struct Particle
-{
-    public float3 Position;
-    public float3 Velocity;
-}
-
-public enum KernelFunction
-{
-    Linear,
-    Quadratic
-}
-public enum AdvectionMethod
-{
-    ForwardEuler,
-    SecondOrderRungeKutta,
-    ThirdOrderRungeKutta
-}
-
-public enum Quality
-{
-    Low,
-    Medium,
-    High,
-    Ultra
-}
-
 public class FLIPSimulation : MonoBehaviour, IDisposable
 {
+    #region Structs & Enums
+    private struct Particle
+    {
+        public float3 Position;
+        public float3 Velocity;
+    }
+
+    private enum KernelFunction
+    {
+        Linear,
+        Quadratic
+    }
+
+    private enum AdvectionMethod
+    {
+        ForwardEuler,
+        SecondOrderRungeKutta,
+        ThirdOrderRungeKutta
+    }
+
+    private enum Quality
+    {
+        Low,
+        Medium,
+        High,
+        Ultra
+    }
+    #endregion
+
     #region Properties
     private const float DeltaTime = 1f / 60f;
 

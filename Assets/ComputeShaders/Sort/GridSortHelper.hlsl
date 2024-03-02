@@ -17,32 +17,32 @@ RWStructuredBuffer<uint2> _ObjectCellIDPairBufferWrite;
 RWStructuredBuffer<uint2> _GridObjectIDBufferWrite;
 
 [numthreads(128, 1, 1)]
-void MakeObjectCellIDPair(uint3 id : SV_DispatchThreadID)
+void MakeObjectCellIDPair(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint o_id = id.x;
-    const uint c_id = PosToCellID(_ObjectBufferRead[o_id].Pos);
+    const uint o_id = thread_id.x;
+    const uint c_id = WorldPosToCellID(_ObjectBufferRead[o_id].Pos);
 
     _ObjectCellIDPairBufferWrite[o_id] = uint2(c_id, o_id);
 }
 
 [numthreads(128, 1, 1)]
-void ClearGridObjectID(uint3 id : SV_DispatchThreadID)
+void ClearGridObjectID(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
+    const uint c_id = thread_id.x;
 
     _GridObjectIDBufferWrite[c_id] = (uint2)0;
 }
 
 [numthreads(128, 1, 1)]
-void SetGridObjectID(uint3 id : SV_DispatchThreadID)
+void SetGridObjectID(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint curr_o_id = id.x;
+    const uint curr_o_id = thread_id.x;
 
     const uint prev_o_id = curr_o_id == 0 ? _NumObjects - 1 : curr_o_id - 1;
     const uint next_o_id = curr_o_id == _NumObjects - 1 ? 0 : curr_o_id + 1;
@@ -55,11 +55,11 @@ void SetGridObjectID(uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(128, 1, 1)]
-void RearrangeObject(uint3 id : SV_DispatchThreadID)
+void RearrangeObject(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint o_id = id.x;
+    const uint o_id = thread_id.x;
 
     const uint past_o_id = _ObjectCellIDPairBufferRead[o_id].y;
 

@@ -117,7 +117,7 @@ SAMPLE_GRID_PARAMS_Y(value.y, POS, GRID_BUFFER)\
 SAMPLE_GRID_PARAMS_Z(value.z, POS, GRID_BUFFER)\
 return value;\
 
-inline float3 SampleGridParams(float3 pos, StructuredBuffer<float3> grid_buffer)
+inline float3 SampleGridParam(float3 pos, StructuredBuffer<float3> grid_buffer)
 {
     SAMPLE_GRID_PARAMS_MASTER(pos, grid_buffer)
 }

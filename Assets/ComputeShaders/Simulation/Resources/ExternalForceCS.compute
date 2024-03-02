@@ -2,38 +2,43 @@
 
 #include "../Common.hlsl"
 
+float3 _Gravity;
+float3 _RayOrigin;
+float3 _RayDirection;
+float4 _MouseForceParameter; // x,y,z: Force w: Range
+
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
 
-inline float GetMouseForce(float3 pos)
+inline float GetMouseForce(float3 position)
 {
-    const float distance_to_mouse_ray = length(cross(_RayDirection, pos - _RayOrigin));
+    const float distance_to_mouse_ray = length(cross(_RayDirection, position - _RayOrigin));
     const float normalized_distance = distance_to_mouse_ray / _MouseForceParameter.w;
     return smoothstep(1.0, 0.9, normalized_distance);
 }
 
 [numthreads(128, 1, 1)]
-void AddExternalForce(uint3 id : SV_DispatchThreadID)
+void AddExternalForce(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
+    RETURN_IF_INVALID(thread_id);
 
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
-    float3 c_vel = _GridVelocityBufferRW[c_id];
+    float3 velocity = _GridVelocityBufferRW[c_id];
 
     // forward Euler time integration
-    c_vel += _Gravity * _DeltaTime;
+    velocity += _Gravity * _DeltaTime;
 
     // add mouse force
-    const float3 c_pos = CellIndexToCellPos(c_index);
-    const float3 c_pos_vx = c_pos + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
-    const float3 c_pos_vy = c_pos + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
-    const float3 c_pos_vz = c_pos + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
-    float3 mouse_force = float3(GetMouseForce(c_pos_vx), GetMouseForce(c_pos_vy), GetMouseForce(c_pos_vz));
+    const float3 position = CellIndexToWorldPos(c_index);
+    const float3 position_vx = position + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
+    const float3 position_vy = position + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
+    const float3 position_vz = position + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
+    float3 mouse_force = float3(GetMouseForce(position_vx), GetMouseForce(position_vy), GetMouseForce(position_vz));
     mouse_force *= _MouseForceParameter.xyz;
-    c_vel += mouse_force * _DeltaTime;
+    velocity += mouse_force * _DeltaTime;
 
-    ENFORCE_BOUNDARY_CONDITION(c_index, c_vel);
+    EnforceBoundaryCondition(velocity, c_index);
 
-    _GridVelocityBufferRW[c_id] = c_vel;
+    _GridVelocityBufferRW[c_id] = velocity;
 }

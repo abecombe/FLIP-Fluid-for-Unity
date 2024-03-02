@@ -14,52 +14,52 @@ RWStructuredBuffer<float3> _GridVelocityBufferWrite;
 RWStructuredBuffer<float3> _GridOriginalVelocityBufferWrite;
 
 #if defined(USE_LINEAR_KERNEL)
-static const int gridRange[6] = { -1, 1, -1, 1, -1, 1 };
+static const int grid_range[6] = { -1, 1, -1, 1, -1, 1 };
 #elif defined(USE_QUADRATIC_KERNEL)
-static const int gridRange[6] = { -2, 1, -2, 1, -2, 1 };
+static const int grid_range[6] = { -2, 1, -2, 1, -2, 1 };
 #else
-static const int gridRange[6] = { 0, 0, 0, 0, 0, 0 };
+static const int grid_range[6] = { 0, 0, 0, 0, 0, 0 };
 #endif
 
 [numthreads(128, 1, 1)]
-void ParticleToGrid(uint3 id : SV_DispatchThreadID)
+void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
 {
-    RETURN_IF_INVALID(id);
-    
-    const uint c_id = id.x;
-    const uint3 c_index = CellIDToCellIndex(c_id);
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     // decide grid type
     const uint2 particle_index = _GridParticleIDBufferRead[c_id];
     _GridTypeBufferWrite[c_id] = particle_index.y - particle_index.x > 0 ? GT_FLUID : GT_AIR;
 
-    const float3 c_pos = CellIndexToCellPos(c_index);
-    const float3 c_pos_vx = c_pos + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
-    const float3 c_pos_vy = c_pos + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
-    const float3 c_pos_vz = c_pos + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
+    const float3 position = CellIndexToWorldPos(c_index);
+    const float3 position_vx = position + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
+    const float3 position_vy = position + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
+    const float3 position_vz = position + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
 
     float3 sum_weight = (float3)0;
     float3 sum_velocity = (float3)0;
 
     // calc weight & velocity
-    FOR_EACH_NEIGHBOR_CELL_PARTICLE_START(c_index, p_id, _GridParticleIDBufferRead, gridRange)
+    FOR_EACH_NEIGHBOR_CELL_PARTICLE_START(c_index, p_id, _GridParticleIDBufferRead, grid_range)
     {
         const Particle p = _ParticleBufferRead[p_id];
 
         float3 weight;
-        weight.x = GetWeight(p.position, c_pos_vx, _GridInvSpacing);
-        weight.y = GetWeight(p.position, c_pos_vy, _GridInvSpacing);
-        weight.z = GetWeight(p.position, c_pos_vz, _GridInvSpacing);
+        weight.x = GetWeight(p.position, position_vx, _GridInvSpacing);
+        weight.y = GetWeight(p.position, position_vy, _GridInvSpacing);
+        weight.z = GetWeight(p.position, position_vz, _GridInvSpacing);
 
         sum_weight += weight;
         sum_velocity += weight * p.velocity;
     }
     FOR_EACH_NEIGHBOR_CELL_PARTICLE_END
 
-    float3 c_vel = sum_weight > 0 ? sum_velocity / max(sum_weight, FLT_MIN) : 0.0f;
+    float3 velocity = sum_weight > 0 ? sum_velocity / max(sum_weight, FLT_MIN) : 0.0f;
 
-    ENFORCE_BOUNDARY_CONDITION(c_index, c_vel);
+    EnforceBoundaryCondition(velocity, c_index);
 
-    _GridVelocityBufferWrite[c_id] = c_vel;
-    _GridOriginalVelocityBufferWrite[c_id] = c_vel;
+    _GridVelocityBufferWrite[c_id] = velocity;
+    _GridOriginalVelocityBufferWrite[c_id] = velocity;
 }

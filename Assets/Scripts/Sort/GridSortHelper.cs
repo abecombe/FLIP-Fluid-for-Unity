@@ -2,12 +2,11 @@
 using Abecombe.GPUBufferOperators;
 using Abecombe.GPUUtil;
 using Unity.Mathematics;
-using UnityEngine;
 
 public class GridSortHelper<Object> : IDisposable
 {
     #region Properties
-    private GPUComputeShader _gridSortHelperCS;
+    private GPUComputeShader _gridSortHelperCs;
     private GPUBuffer<uint2> _objectCellIDPairBuffer = new();
     private GPURadixSort _radixSort = new();
     #endregion
@@ -15,9 +14,9 @@ public class GridSortHelper<Object> : IDisposable
     #region Sort Functions
     public void Sort(GPUDoubleBuffer<Object> objectBuffer, GPUBuffer<uint2> gridObjectIDBuffer, float3 gridMin, float3 gridMax, int3 gridSize, float3 gridSpacing)
     {
-        _gridSortHelperCS ??= new GPUComputeShader("GridSortHelperCS");
+        _gridSortHelperCs ??= new GPUComputeShader("GridSortHelperCS");
 
-        var cs = _gridSortHelperCS;
+        var cs = _gridSortHelperCs;
         var k_make = cs.FindKernel("MakeObjectCellIDPair");
         var k_clear = cs.FindKernel("ClearGridObjectID");
         var k_set = cs.FindKernel("SetGridObjectID");
