@@ -1,6 +1,6 @@
 ﻿using System;
 using Abecombe.GPUBufferOperators;
-using GPUUtil;
+using Abecombe.GPUUtil;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -15,13 +15,13 @@ public class GridSortHelper<Object> : IDisposable
     #region Sort Functions
     public void Sort(GPUDoubleBuffer<Object> objectBuffer, GPUBuffer<uint2> gridObjectIDBuffer, float3 gridMin, float3 gridMax, int3 gridSize, float3 gridSpacing)
     {
-        _gridSortHelperCS ??= new GPUComputeShader(Resources.Load<ComputeShader>("GridSortHelperCS"), "MakeObjectCellIDPair", "ClearGridObjectID", "SetGridObjectID", "RearrangeObject");
+        _gridSortHelperCS ??= new GPUComputeShader("GridSortHelperCS");
 
         var cs = _gridSortHelperCS;
-        var k_make = cs.Kernel[0];
-        var k_clear = cs.Kernel[1];
-        var k_set = cs.Kernel[2];
-        var k_rearrange = cs.Kernel[3];
+        var k_make = cs.FindKernel("MakeObjectCellIDPair");
+        var k_clear = cs.FindKernel("ClearGridObjectID");
+        var k_set = cs.FindKernel("SetGridObjectID");
+        var k_rearrange = cs.FindKernel("RearrangeObject");
 
         int numObjects = objectBuffer.Size;
         // check for updates

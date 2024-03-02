@@ -1,0 +1,18 @@
+﻿#pragma kernel CopyBuffer
+
+uint3 _NumThreads;
+
+uint _BufferSize;
+uint _BufferBytes;
+
+StructuredBuffer<uint> _BufferRead;
+RWStructuredBuffer<uint> _BufferWrite;
+
+[numthreads(128, 1, 1)]
+void CopyBuffer(uint3 thread_id : SV_DispatchThreadID)
+{
+    if (thread_id.x >= _NumThreads.x) return;
+
+    for (uint i = thread_id.x; i < _BufferBytes; i += _BufferSize)
+        _BufferWrite[i] = _BufferRead[i];
+}

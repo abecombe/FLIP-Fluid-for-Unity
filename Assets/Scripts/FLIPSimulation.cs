@@ -1,5 +1,6 @@
 ﻿using System;
-using GPUUtil;
+using Abecombe.FPSUtil;
+using Abecombe.GPUUtil;
 using RosettaUI;
 using Unity.Mathematics;
 using UnityEngine;
@@ -111,15 +112,15 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #region Initialize Functions
     private void InitComputeShaders()
     {
-        _particleInitCs = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleInitCS"), "InitParticle");
-        _particleToGridCs = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleToGridCS"), "ParticleToGrid");
-        _externalForceCs = new GPUComputeShader(Resources.Load<ComputeShader>("ExternalForceCS"), "AddExternalForce");
-        _diffusionCs = new GPUComputeShader(Resources.Load<ComputeShader>("DiffusionCS"), "Diffuse", "UpdateVelocity");
-        _pressureProjectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("PressureProjectionCS"), "CalcDivergence", "Project", "UpdateVelocity");
-        _gridToParticleCs = new GPUComputeShader(Resources.Load<ComputeShader>("GridToParticleCS"), "GridToParticle");
-        _particleAdvectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("ParticleAdvectionCS"), "Advect");
-        _densityProjectionCs = new GPUComputeShader(Resources.Load<ComputeShader>("DensityProjectionCS"), "BuildGhostWeight", "InitBuffer", "InterlockedAddWeight", "CalcGridWeight", "Project", "CalcPositionModify", "UpdatePosition");
-        _renderingCs = new GPUComputeShader(Resources.Load<ComputeShader>("RenderingCS"), "PrepareRendering");
+        _particleInitCs = new GPUComputeShader("ParticleInitCS");
+        _particleToGridCs = new GPUComputeShader("ParticleToGridCS");
+        _externalForceCs = new GPUComputeShader("ExternalForceCS");
+        _diffusionCs = new GPUComputeShader("DiffusionCS");
+        _pressureProjectionCs = new GPUComputeShader("PressureProjectionCS");
+        _gridToParticleCs = new GPUComputeShader("GridToParticleCS");
+        _particleAdvectionCs = new GPUComputeShader("ParticleAdvectionCS");
+        _densityProjectionCs = new GPUComputeShader("DensityProjectionCS");
+        _renderingCs = new GPUComputeShader("RenderingCS");
     }
 
     private void InitParticleBuffers()
@@ -129,7 +130,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
         // init particle
         var cs = _particleInitCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("InitParticle");
         SetConstants(cs);
         cs.SetVector("_ParticleInitRangeMin", ParticleInitRangeMin);
         cs.SetVector("_ParticleInitRangeMax", ParticleInitRangeMax);
@@ -162,7 +163,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
         // build ghost weight
         var cs = _densityProjectionCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("BuildGhostWeight");
         SetConstants(cs);
         cs.SetVector("_GhostWeight", new float3(0.125f, 0.234375f, 0.330078125f) * NumParticleInCell);
         k.SetBuffer("_GridGhostWeightBufferWrite", _gridGhostWeightBuffer);
@@ -206,7 +207,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         _gridSortHelper.Sort(_particleBuffer, _gridParticleIDBuffer, GridMin, GridMax, GridSize, GridSpacing);
 
         var cs = _particleToGridCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("ParticleToGrid");
 
         SetConstants(cs);
 
@@ -224,7 +225,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchExternalForce()
     {
         var cs = _externalForceCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("AddExternalForce");
 
         SetConstants(cs);
 
@@ -261,8 +262,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         if (_viscosity <= 0f) return;
 
         var cs = _diffusionCs;
-        var k_diff = cs.Kernel[0];
-        var k_vel = cs.Kernel[1];
+        var k_diff = cs.FindKernel("Diffuse");
+        var k_vel = cs.FindKernel("UpdateVelocity");
 
         SetConstants(cs);
 
@@ -292,9 +293,9 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchPressureProjection()
     {
         var cs = _pressureProjectionCs;
-        var k_div = cs.Kernel[0];
-        var k_proj = cs.Kernel[1];
-        var k_vel = cs.Kernel[2];
+        var k_div = cs.FindKernel("CalcDivergence");
+        var k_proj = cs.FindKernel("Project");
+        var k_vel = cs.FindKernel("UpdateVelocity");
 
         SetConstants(cs);
 
@@ -333,7 +334,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchGridToParticle()
     {
         var cs = _gridToParticleCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("GridToParticle");
 
         SetConstants(cs);
 
@@ -349,7 +350,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchAdvection()
     {
         var cs = _particleAdvectionCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("Advect");
 
         SetConstants(cs);
 
@@ -382,12 +383,12 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchDensityProjection()
     {
         var cs = _densityProjectionCs;
-        var k_init = cs.Kernel[1];
-        var k_add = cs.Kernel[2];
-        var k_weight = cs.Kernel[3];
-        var k_proj = cs.Kernel[4];
-        var k_delpos = cs.Kernel[5];
-        var k_update = cs.Kernel[6];
+        var k_init = cs.FindKernel("InitBuffer");
+        var k_add = cs.FindKernel("InterlockedAddWeight");
+        var k_weight = cs.FindKernel("CalcGridWeight");
+        var k_proj = cs.FindKernel("Project");
+        var k_delpos = cs.FindKernel("CalcPositionModify");
+        var k_update = cs.FindKernel("UpdatePosition");
 
         SetConstants(cs);
         cs.SetFloat("_InvAverageWeight", 1f / NumParticleInCell);
@@ -441,7 +442,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void RenderParticles()
     {
         var cs = _renderingCs;
-        var k = cs.Kernel[0];
+        var k = cs.FindKernel("PrepareRendering");
 
         k.SetBuffer("_ParticleBufferRead", _particleBuffer.Read);
         k.SetBuffer("_ParticleRenderingBufferWrite", _particleRenderingBuffer);

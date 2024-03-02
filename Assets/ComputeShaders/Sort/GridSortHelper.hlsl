@@ -1,10 +1,10 @@
 ﻿#ifndef CS_SORT_GRID_SORT_HELPER_HLSL
 #define CS_SORT_GRID_SORT_HELPER_HLSL
 
+#include "Assets/Packages/GPUUtil/DispatchHelper.hlsl"
+
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
-
-#include "../DispatchHelper.hlsl"
 
 uint _NumObjects;
 
@@ -23,7 +23,7 @@ void MakeObjectCellIDPair(uint3 id : SV_DispatchThreadID)
 
     const uint o_id = id.x;
     const uint c_id = PosToCellID(_ObjectBufferRead[o_id].Pos);
-    
+
     _ObjectCellIDPairBufferWrite[o_id] = uint2(c_id, o_id);
 }
 
@@ -31,7 +31,7 @@ void MakeObjectCellIDPair(uint3 id : SV_DispatchThreadID)
 void ClearGridObjectID(uint3 id : SV_DispatchThreadID)
 {
     RETURN_IF_INVALID(id);
-    
+
     const uint c_id = id.x;
 
     _GridObjectIDBufferWrite[c_id] = (uint2)0;
@@ -41,7 +41,7 @@ void ClearGridObjectID(uint3 id : SV_DispatchThreadID)
 void SetGridObjectID(uint3 id : SV_DispatchThreadID)
 {
     RETURN_IF_INVALID(id);
-    
+
     const uint curr_o_id = id.x;
 
     const uint prev_o_id = curr_o_id == 0 ? _NumObjects - 1 : curr_o_id - 1;
@@ -58,11 +58,11 @@ void SetGridObjectID(uint3 id : SV_DispatchThreadID)
 void RearrangeObject(uint3 id : SV_DispatchThreadID)
 {
     RETURN_IF_INVALID(id);
-    
+
     const uint o_id = id.x;
 
     const uint past_o_id = _ObjectCellIDPairBufferRead[o_id].y;
-    
+
     _ObjectBufferWrite[o_id] = _ObjectBufferRead[past_o_id];
 }
 

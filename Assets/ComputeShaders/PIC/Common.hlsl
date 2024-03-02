@@ -1,12 +1,13 @@
 ﻿#ifndef CS_PIC_COMMON_HLSL
 #define CS_PIC_COMMON_HLSL
 
+#include "Assets/Packages/GPUUtil/DispatchHelper.hlsl"
+
 #include "../Constant.hlsl"
 #include "../PCG.hlsl"
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
-#include "../DispatchHelper.hlsl"
 
 #include "PICParticle.hlsl"
 #include "PICGrid.hlsl"

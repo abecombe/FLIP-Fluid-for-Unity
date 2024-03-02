@@ -983,7 +983,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1675498001}
   m_Layer: 0
-  m_Name: FPSUtils
+  m_Name: FPSUtil
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
