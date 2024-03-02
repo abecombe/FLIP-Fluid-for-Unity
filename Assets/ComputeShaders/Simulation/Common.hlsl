@@ -9,12 +9,12 @@
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"
 
-#include "PICParticle.hlsl"
-#include "PICGrid.hlsl"
+#include "FLIPParticle.hlsl"
+#include "FreeSurface.hlsl"
 
 #include "PICParameter.hlsl"
 #include "PICUtils.hlsl"
-#include "PICKernel.hlsl"
+#include "KernelFunc.hlsl"
 
 
 #endif /* CS_PIC_COMMON_HLSL */
