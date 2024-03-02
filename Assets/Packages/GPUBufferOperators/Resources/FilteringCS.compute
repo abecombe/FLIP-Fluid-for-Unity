@@ -1,0 +1,7 @@
+﻿#pragma kernel RadixSortLocal
+#pragma kernel GlobalShuffle
+
+#define DATA_TYPE uint2        // input data struct
+#define GET_KEY(s) (s.x == 1)  // certain condition used for filtering
+
+#include "../GPUFiltering.hlsl"

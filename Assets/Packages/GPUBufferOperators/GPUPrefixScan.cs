@@ -20,6 +20,7 @@ namespace Abecombe.GPUBufferOperators
         private GraphicsBuffer _totalSumBuffer;
 
         private uint _totalSum = 0;
+        private uint[] _totalSumArr = new uint[1];
 
         private bool _inited = false;
 
@@ -40,34 +41,35 @@ namespace Abecombe.GPUBufferOperators
         // Implementation of Article "Chapter 39. Parallel Prefix Sum (Scan) with CUDA"
         // https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
 
-        // dataBuffer
-        // : data<uint> buffer to be scanned
-        // returnTotalSum
-        // : whether this function should return the total sum of values
-        // return value
-        // : the total sum of values (only when returnTotalSum is true)
-        public uint Scan(GraphicsBuffer dataBuffer, bool returnTotalSum = false)
+        /// <summary>
+        /// Prefix scan on dataBuffer
+        /// </summary>
+        /// <param name="dataBuffer">data buffer to be scanned</param>
+        public void Scan(GraphicsBuffer dataBuffer)
         {
-            Scan(dataBuffer, null, 0, returnTotalSum, 0);
-
-            return _totalSum;
+            Scan(dataBuffer, null, 0, false, 0);
         }
 
-        // dataBuffer
-        // : data<uint> buffer to be scanned
-        // totalSumBuffer
-        // : data<uint> buffer to store the total sum
-        // bufferOffset
-        // : index of the element in the totalSumBuffer to store the total sum
-        // returnTotalSum
-        // : whether this function should return the total sum of values
-        // return value
-        // : the total sum of values (only when returnTotalSum is true)
-        public uint Scan(GraphicsBuffer dataBuffer, GraphicsBuffer totalSumBuffer, uint bufferOffset, bool returnTotalSum = false)
+        /// <summary>
+        /// Prefix scan on dataBuffer
+        /// </summary>
+        /// <param name="dataBuffer">data buffer to be scanned</param>
+        /// <param name="totalSum">the total sum of values</param>
+        public void Scan(GraphicsBuffer dataBuffer, out uint totalSum)
         {
-            Scan(dataBuffer, totalSumBuffer, bufferOffset, returnTotalSum, 0);
+            Scan(dataBuffer, null, 0, true, 0);
+            totalSum = _totalSum;
+        }
 
-            return _totalSum;
+        /// <summary>
+        /// Prefix scan on dataBuffer
+        /// </summary>
+        /// <param name="dataBuffer">data buffer to be scanned</param>
+        /// <param name="totalSumBuffer">data buffer to store the total sum</param>
+        /// <param name="bufferOffset">index of the element in the totalSumBuffer to store the total sum</param>
+        public void Scan(GraphicsBuffer dataBuffer, GraphicsBuffer totalSumBuffer, uint bufferOffset = 0)
+        {
+            Scan(dataBuffer, totalSumBuffer, bufferOffset, false, 0);
         }
 
         private void Scan(GraphicsBuffer dataBuffer, GraphicsBuffer totalSumBuffer, uint bufferOffset, bool returnTotalSum, int bufferIndex)
@@ -134,9 +136,8 @@ namespace Abecombe.GPUBufferOperators
 
                 if (returnTotalSum)
                 {
-                    uint[] totalSumArr = new uint[1];
-                    totalSumBuffer.GetData(totalSumArr, 0, (int)bufferOffset, 1);
-                    _totalSum = totalSumArr[0];
+                    totalSumBuffer.GetData(_totalSumArr, 0, (int)bufferOffset, 1);
+                    _totalSum = _totalSumArr[0];
                 }
             }
             // execute this function recursively
@@ -180,9 +181,12 @@ namespace Abecombe.GPUBufferOperators
             }
         }
 
+        /// <summary>
+        /// Release buffers
+        /// </summary>
         public void Dispose()
         {
-            if (_groupSumBufferList is not null) { _groupSumBufferList.ForEach(x => x.Release()); _groupSumBufferList = null; } 
+            if (_groupSumBufferList is not null) { _groupSumBufferList.ForEach(x => x.Release()); _groupSumBufferList = null; }
             if (_totalSumBuffer is not null) { _totalSumBuffer.Release(); _totalSumBuffer = null; }
         }
     }

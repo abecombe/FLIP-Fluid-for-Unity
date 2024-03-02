@@ -50,13 +50,11 @@ namespace Abecombe.GPUBufferOperators
         // s : size of data struct
         // w : number of bits to sort
 
-        // dataBuffer
-        // : data<T> buffer to be sorted
-        // : please define the data struct & how to get the key-values in "CustomDefinition.hlsl".
-        // maxValue
-        // : maximum key-value
-        // : since this variable directly related to the complexity,
-        // : passing this argument will reduce the cost of sorting.
+        /// <summary>
+        /// Sort data buffer in ascending order
+        /// </summary>
+        /// <param name="dataBuffer">data buffer to be sorted</param>
+        /// <param name="maxValue">maximum key-value</param>
         public void Sort(GraphicsBuffer dataBuffer, uint maxValue = uint.MaxValue)
         {
             if (!_inited) Init();
@@ -126,6 +124,9 @@ namespace Abecombe.GPUBufferOperators
             }
         }
 
+        /// <summary>
+        /// Release buffers
+        /// </summary>
         public void Dispose()
         {
             if (_tempBuffer is not null) { _tempBuffer.Release(); _tempBuffer = null; }

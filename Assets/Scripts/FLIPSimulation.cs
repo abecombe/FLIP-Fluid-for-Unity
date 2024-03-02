@@ -61,23 +61,23 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private float3 GridInvSpacing => 1f / GridSpacing;
 
     // Particle Data Buffers
-    private readonly GPUDoubleBuffer<Particle> _particleBuffer = new();
-    private readonly GPUBuffer<float4> _particleRenderingBuffer = new(); // xyz: position, w: speed
+    private GPUDoubleBuffer<Particle> _particleBuffer = new();
+    private GPUBuffer<float4> _particleRenderingBuffer = new(); // xyz: position, w: speed
 
     // Grid Data Buffers
-    private readonly GPUBuffer<uint2> _gridParticleIDBuffer = new();
-    private readonly GPUBuffer<uint> _gridTypeBuffer = new();
-    private readonly GPUBuffer<float3> _gridVelocityBuffer = new();
-    private readonly GPUBuffer<float3> _gridOriginalVelocityBuffer = new();
-    private readonly GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
-    private readonly GPUBuffer<float> _gridDivergenceBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridPressureBuffer = new();
-    private readonly GPUBuffer<float> _gridWeightBuffer = new();
-    private readonly GPUBuffer<float> _gridGhostWeightBuffer = new();
-    private readonly GPUBuffer<uint> _gridUIntWeightBuffer = new();
-    private readonly GPUDoubleBuffer<float> _gridDensityPressureBuffer = new();
-    private readonly GPUBuffer<float3> _gridPositionModifyBuffer = new();
-    private readonly GPUBuffer<float> _gridFloatZeroBuffer = new();
+    private GPUBuffer<uint2> _gridParticleIDBuffer = new();
+    private GPUBuffer<uint> _gridTypeBuffer = new();
+    private GPUBuffer<float3> _gridVelocityBuffer = new();
+    private GPUBuffer<float3> _gridOriginalVelocityBuffer = new();
+    private GPUDoubleBuffer<float3> _gridDiffusionBuffer = new();
+    private GPUBuffer<float> _gridDivergenceBuffer = new();
+    private GPUDoubleBuffer<float> _gridPressureBuffer = new();
+    private GPUBuffer<float> _gridWeightBuffer = new();
+    private GPUBuffer<float> _gridGhostWeightBuffer = new();
+    private GPUBuffer<uint> _gridUIntWeightBuffer = new();
+    private GPUDoubleBuffer<float> _gridDensityPressureBuffer = new();
+    private GPUBuffer<float3> _gridPositionModifyBuffer = new();
+    private GPUBuffer<float> _gridFloatZeroBuffer = new();
 
     // Compute Shaders
     private GPUComputeShader _particleInitCs;
@@ -91,7 +91,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private GPUComputeShader _renderingCs;
 
     // Grid Sort Helper
-    private readonly GridSortHelper<Particle> _gridSortHelper = new();
+    private GridSortHelper<Particle> _gridSortHelper = new();
 
     // Simulation Params
     [SerializeField] [Tooltip("0 is full PIC, 1 is full FLIP")] [Range(0f, 1f)] private float _flipness = 0.99f;
@@ -106,6 +106,9 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     [SerializeField] [Range(1, 30)] private uint _pressureProjectionJacobiIteration = 15;
     [SerializeField] [Range(1, 60)] private uint _densityProjectionJacobiIteration = 30;
 
+    // RosettaUI
+    [SerializeField] private RosettaUIRoot _rosettaUIRoot;
+    [SerializeField] private KeyCode _toggleUIKey = KeyCode.Tab;
     [SerializeField] private bool _showFps = true;
     #endregion
 
@@ -476,55 +479,65 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #endregion
 
     #region RosettaUI
-    public Element CreateElement()
+    private void InitRosettaUI()
     {
-        return UI.Window(
-            "Settings ( press U to open / close )",
+        var window = UI.Window(
+            $"Settings ( press {_toggleUIKey.ToString()} to open / close )",
             UI.Indent(UI.Box(UI.Indent(
-            UI.Space().SetHeight(5f),
-            UI.Field("Quality", () => _quality)
-            .RegisterValueChangeCallback(InitGPUBuffers),
-            UI.Indent(
-                UI.FieldReadOnly("Num Particles", () => NumParticles),
-                UI.FieldReadOnly("Num Grids", () => NumGrids)
-            ),
-            UI.Space().SetHeight(10f),
-            UI.Label("Parameter"),
-            UI.Indent(
-                UI.Slider("Flipness", () => _flipness),
-                UI.Field("Gravity", () => _gravity),
-                UI.Slider("Viscosity", () => _viscosity)
-            ),
-            UI.Space().SetHeight(10f),
-            UI.Label("Numerical Method"),
-            UI.Indent(
-                UI.Field("Kernel Function", () => _kernelFunction),
-                UI.Field("Advection Method", () => _advectionMethod),
-                UI.Field("Density Projection", () => _activeDensityProjection)
-            ),
-            UI.Space().SetHeight(10f),
-            UI.Label("Interaction"),
-            UI.Indent(
-                UI.Slider("Mouse Force", () => _mouseForce),
-                UI.Slider("Mouse Force Range", () => _mouseForceRange)
-            ),
-            UI.Space().SetHeight(10f),
-            UI.Label("Jacobi Iteration"),
-            UI.Indent(
-                UI.Slider("Diffusion", () => _diffusionJacobiIteration),
-                UI.Slider("Pressure Projection", () => _pressureProjectionJacobiIteration),
-                UI.Slider("Density Projection", () => _densityProjectionJacobiIteration)
-            ),
-            UI.Space().SetHeight(10f),
-            UI.Field("Show FPS", () => _showFps)
-            .RegisterValueChangeCallback(() => {
-                FindObjectOfType<FPSCounter>().enabled = _showFps;
-            }),
-            UI.Space().SetHeight(10f),
-            UI.Button("Restart", InitGPUBuffers),
-            UI.Space().SetHeight(5f)
+                UI.Space().SetHeight(5f),
+                UI.Field("Quality", () => _quality)
+                    .RegisterValueChangeCallback(InitGPUBuffers),
+                UI.Indent(
+                    UI.FieldReadOnly("Num Particles", () => NumParticles),
+                    UI.FieldReadOnly("Num Grids", () => NumGrids)
+                ),
+                UI.Space().SetHeight(10f),
+                UI.Label("Parameter"),
+                UI.Indent(
+                    UI.Slider("Flipness", () => _flipness),
+                    UI.Field("Gravity", () => _gravity),
+                    UI.Slider("Viscosity", () => _viscosity)
+                ),
+                UI.Space().SetHeight(10f),
+                UI.Label("Numerical Method"),
+                UI.Indent(
+                    UI.Field("Kernel Function", () => _kernelFunction),
+                    UI.Field("Advection Method", () => _advectionMethod),
+                    UI.Field("Density Projection", () => _activeDensityProjection)
+                ),
+                UI.Space().SetHeight(10f),
+                UI.Label("Interaction"),
+                UI.Indent(
+                    UI.Slider("Mouse Force", () => _mouseForce),
+                    UI.Slider("Mouse Force Range", () => _mouseForceRange)
+                ),
+                UI.Space().SetHeight(10f),
+                UI.Label("Jacobi Iteration"),
+                UI.Indent(
+                    UI.Slider("Diffusion", () => _diffusionJacobiIteration),
+                    UI.Slider("Pressure Projection", () => _pressureProjectionJacobiIteration),
+                    UI.Slider("Density Projection", () => _densityProjectionJacobiIteration)
+                ),
+                UI.Space().SetHeight(10f),
+                UI.Field("Show FPS", () => _showFps)
+                    .RegisterValueChangeCallback(() =>
+                    {
+                        FindObjectOfType<FPSCounter>().enabled = _showFps;
+                    }),
+                UI.Space().SetHeight(10f),
+                UI.Button("Restart", InitGPUBuffers),
+                UI.Space().SetHeight(5f)
             )))
         );
+        window.Closable = false;
+
+        _rosettaUIRoot.Build(window);
+    }
+
+    private void UpdateRosettaUI()
+    {
+        if (Input.GetKeyDown(_toggleUIKey))
+            _rosettaUIRoot.enabled = !_rosettaUIRoot.enabled;
     }
     #endregion
 
@@ -533,6 +546,11 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     {
         InitComputeShaders();
         InitGPUBuffers();
+    }
+
+    private void Start()
+    {
+        InitRosettaUI();
     }
 
     private void Update()
@@ -545,6 +563,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         DispatchAdvection();
         if (_activeDensityProjection) DispatchDensityProjection();
         RenderParticles();
+
+        UpdateRosettaUI();
     }
 
     private void OnDisable()

@@ -515,7 +515,6 @@ GameObject:
   - component: {fileID: 1005516107}
   - component: {fileID: 1005516106}
   - component: {fileID: 1005516105}
-  - component: {fileID: 1005516104}
   m_Layer: 0
   m_Name: RosettaUI
   m_TagString: Untagged
@@ -523,19 +522,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1005516104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1005516103}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6a2d8e7a50b54c1499c6f8911a6b59a9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _toggleUIKey: 117
 --- !u!114 &1005516105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -632,6 +618,8 @@ MonoBehaviour:
   _diffusionJacobiIteration: 15
   _pressureProjectionJacobiIteration: 15
   _densityProjectionJacobiIteration: 30
+  _rosettaUIRoot: {fileID: 1005516105}
+  _toggleUIKey: 9
   _showFps: 1
 --- !u!4 &1099404996
 Transform:
