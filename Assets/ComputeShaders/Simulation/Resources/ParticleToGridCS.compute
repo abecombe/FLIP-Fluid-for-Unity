@@ -38,8 +38,8 @@ void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
     const float3 position_vy = position + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
     const float3 position_vz = position + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
 
-    float3 sum_weight = (float3)0;
-    float3 sum_velocity = (float3)0;
+    float3 sum_weight = 0;
+    float3 sum_velocity = 0;
 
     // calc weight & velocity
     FOR_EACH_NEIGHBOR_CELL_PARTICLE_START(c_index, p_id, _GridParticleIDBufferRead, grid_range)
