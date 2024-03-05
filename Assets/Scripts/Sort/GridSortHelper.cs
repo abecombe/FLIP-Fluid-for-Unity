@@ -12,7 +12,7 @@ public class GridSortHelper<Object> : IDisposable
     #endregion
 
     #region Sort Functions
-    public void Sort(GPUDoubleBuffer<Object> objectBuffer, GPUBuffer<uint2> gridObjectIDBuffer, float3 gridMin, float3 gridMax, int3 gridSize, float3 gridSpacing)
+    public void Sort(GPUDoubleBuffer<Object> objectBuffer, GPUBuffer<uint2> gridObjectIDBuffer, float3 gridMin, float3 gridMax, int3 gridSize, float gridSpacing)
     {
         _gridSortHelperCs ??= new GPUComputeShader("GridSortHelperCS");
 
@@ -32,8 +32,8 @@ public class GridSortHelper<Object> : IDisposable
         cs.SetVector("_GridMin", gridMin);
         cs.SetVector("_GridMax", gridMax);
         cs.SetInts("_GridSize", gridSize);
-        cs.SetVector("_GridSpacing", gridSpacing);
-        cs.SetVector("_GridInvSpacing", 1f / gridSpacing);
+        cs.SetFloat("_GridSpacing", gridSpacing);
+        cs.SetFloat("_GridInvSpacing", 1f / gridSpacing);
 
         // make <cellID, objectID> pair
         k_make.SetBuffer("_ObjectBufferRead", objectBuffer.Read);

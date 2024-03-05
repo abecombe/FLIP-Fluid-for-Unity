@@ -34,9 +34,9 @@ void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
     _GridTypeBufferWrite[c_id] = particle_index.y - particle_index.x > 0 ? GT_FLUID : GT_AIR;
 
     const float3 position = CellIndexToWorldPos(c_index);
-    const float3 position_vx = position + float3(-0.5f * _GridSpacing.x, 0.0f, 0.0f);
-    const float3 position_vy = position + float3(0.0f, -0.5f * _GridSpacing.y, 0.0f);
-    const float3 position_vz = position + float3(0.0f, 0.0f, -0.5f * _GridSpacing.z);
+    const float3 position_vx = position + float3(-0.5f * _GridSpacing, 0.0f, 0.0f);
+    const float3 position_vy = position + float3(0.0f, -0.5f * _GridSpacing, 0.0f);
+    const float3 position_vz = position + float3(0.0f, 0.0f, -0.5f * _GridSpacing);
 
     float3 sum_weight = 0;
     float3 sum_velocity = 0;

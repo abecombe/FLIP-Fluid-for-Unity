@@ -40,14 +40,13 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #region Properties
     private const float DeltaTime = 1f / 60f;
 
-    private const float NumParticleInCell = 8f;
-    private int NumParticles => (int)(ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInCell);
+    private const float NumParticleInACell = 8f;
+    private int NumParticles => (int)(ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInACell);
     private int NumGrids => GridSize.x * GridSize.y * GridSize.z;
 
     // Quality
     [SerializeField] private Quality _quality = Quality.Medium;
     private readonly float[] _qualityToGridSpacing = { 0.5f, 0.4f, 0.3f, 0.2f };
-    private float3 TempGridSpacing => _qualityToGridSpacing[(int)_quality];
 
     // Particle Params
     [SerializeField] private float3 _particleInitRangeMin;
@@ -57,11 +56,13 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private float3 ParticleInitGridSize => (ParticleInitRangeMax - ParticleInitRangeMin) / GridSpacing;
 
     // Grid Params
-    private float3 GridMin => -transform.localScale / 2f;
-    private float3 GridMax => transform.localScale / 2f;
-    private int3 GridSize => (int3)math.ceil((GridMax - GridMin) / TempGridSpacing);
-    private float3 GridSpacing => (GridMax - GridMin) / GridSize;
-    private float3 GridInvSpacing => 1f / GridSpacing;
+    private float3 TempSimulationSize => transform.localScale;
+    private float3 SimulationSize => (float3)GridSize * GridSpacing;
+    private float3 GridMin => -SimulationSize / 2f;
+    private float3 GridMax => SimulationSize / 2f;
+    private int3 GridSize => (int3)math.ceil(TempSimulationSize / GridSpacing);
+    private float GridSpacing => _qualityToGridSpacing[(int)_quality];
+    private float GridInvSpacing => 1f / GridSpacing;
 
     // Particle Data Buffers
     private GPUDoubleBuffer<Particle> _particleBuffer = new();
@@ -147,7 +148,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         var vfx = FindObjectOfType<VisualEffect>();
         vfx.Reinit();
         vfx.SetFloat("NumInstance", NumParticles);
-        vfx.SetFloat("Size", GridSpacing.x * 0.8f);
+        vfx.SetFloat("Size", GridSpacing * 0.8f);
         vfx.SetGraphicsBuffer("ParticleBuffer", _particleRenderingBuffer);
     }
 
@@ -171,7 +172,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         var cs = _densityProjectionCs;
         var k = cs.FindKernel("BuildGhostWeight");
         SetConstants(cs);
-        cs.SetVector("_GhostWeight", new float3(0.125f, 0.234375f, 0.330078125f) * NumParticleInCell);
+        cs.SetVector("_GhostWeight", new float3(0.125f, 0.234375f, 0.330078125f) * NumParticleInACell);
         k.SetBuffer("_GridGhostWeightBufferWrite", _gridGhostWeightBuffer);
         k.Dispatch(NumGrids);
     }
@@ -191,8 +192,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         cs.SetVector("_GridMin", GridMin);
         cs.SetVector("_GridMax", GridMax);
         cs.SetInts("_GridSize", GridSize);
-        cs.SetVector("_GridSpacing", GridSpacing);
-        cs.SetVector("_GridInvSpacing", GridInvSpacing);
+        cs.SetFloat("_GridSpacing", GridSpacing);
+        cs.SetFloat("_GridInvSpacing", GridInvSpacing);
 
         switch (_kernelFunction)
         {
@@ -316,7 +317,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         // project
         float3 temp1 = 1f / GridSpacing / GridSpacing;
         float temp2 = 1f / (2f * (temp1.x + temp1.y + temp1.z));
-        float4 projectionParameter1 = new(temp2 / GridSpacing / GridSpacing, -temp2);
+        float4 projectionParameter1 = new((float3)temp2 / GridSpacing / GridSpacing, -temp2);
         cs.SetVector("_PressureProjectionParameter1", projectionParameter1);
         k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_proj.SetBuffer("_GridDivergenceBufferRead", _gridDivergenceBuffer);
@@ -397,7 +398,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         var k_update = cs.FindKernel("UpdatePosition");
 
         SetConstants(cs);
-        cs.SetFloat("_InvAverageWeight", 1f / NumParticleInCell);
+        cs.SetFloat("_InvAverageWeight", 1f / NumParticleInACell);
 
         // init buffers
         k_init.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
@@ -420,7 +421,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         // project
         float3 temp1 = 1f / GridSpacing / GridSpacing;
         float temp2 = 1f / (2f * (temp1.x + temp1.y + temp1.z));
-        float4 projectionParameter1 = new(temp2 / GridSpacing / GridSpacing, -temp2);
+        float4 projectionParameter1 = new((float3)temp2 / GridSpacing / GridSpacing, -temp2);
         cs.SetVector("_DensityProjectionParameter1", projectionParameter1);
         k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
         k_proj.SetBuffer("_GridWeightBufferRead", _gridWeightBuffer);
