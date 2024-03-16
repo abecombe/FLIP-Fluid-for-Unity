@@ -2,8 +2,9 @@
 
 #include "../Common.hlsl"
 
-float3 _ParticleInitRangeMin;
-float3 _ParticleInitRangeMax;
+int3 _ParticleInitGridMin;
+int3 _ParticleInitGridMax;
+int3 _ParticleInitGridSize;
 
 RWStructuredBuffer<Particle> _ParticleBufferWrite;
 
@@ -16,7 +17,10 @@ void InitParticle(uint3 thread_id : SV_DispatchThreadID)
 
     Particle p = (Particle)0;
 
-    p.position = PCG3_Range(p_id, _ParticleInitRangeMin, _ParticleInitRangeMax);
+    const int x = p_id % (_ParticleInitGridSize.x * 2);
+    const int y = p_id / (_ParticleInitGridSize.x * 2) % (_ParticleInitGridSize.y * 2);
+    const int z = p_id / ((_ParticleInitGridSize.x * 2) * (_ParticleInitGridSize.y * 2));
+    p.position = GridPosToWorldPos(_ParticleInitGridMin + 0.25f + float3(x, y, z) * 0.5f);
 
     ClampPosition(p.position, _GridMin, _GridMax);
 

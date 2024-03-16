@@ -40,8 +40,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #region Properties
     private const float DeltaTime = 1f / 60f;
 
-    private const float NumParticleInACell = 8f;
-    private int NumParticles => (int)(ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInACell);
+    private const int NumParticleInACell = 8;
+    private int NumParticles => ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInACell;
     private int NumGrids => GridSize.x * GridSize.y * GridSize.z;
 
     // Quality
@@ -51,9 +51,9 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     // Particle Params
     [SerializeField] private float3 _particleInitRangeMin;
     [SerializeField] private float3 _particleInitRangeMax;
-    private float3 ParticleInitRangeMin => _particleInitRangeMin;
-    private float3 ParticleInitRangeMax => _particleInitRangeMax;
-    private float3 ParticleInitGridSize => (ParticleInitRangeMax - ParticleInitRangeMin) / GridSpacing;
+    private int3 ParticleInitGridMin => math.clamp((int3)math.round((_particleInitRangeMin - GridMin) * GridInvSpacing - 0.5f), 0, GridSize - 1);
+    private int3 ParticleInitGridMax => math.clamp((int3)math.round((_particleInitRangeMax - GridMin) * GridInvSpacing - 0.5f), ParticleInitGridMin, GridSize - 1);
+    private int3 ParticleInitGridSize => ParticleInitGridMax - ParticleInitGridMin + 1;
 
     // Grid Params
     private float3 TempSimulationSize => transform.localScale;
@@ -139,8 +139,9 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         var cs = _particleInitCs;
         var k = cs.FindKernel("InitParticle");
         SetConstants(cs);
-        cs.SetVector("_ParticleInitRangeMin", ParticleInitRangeMin);
-        cs.SetVector("_ParticleInitRangeMax", ParticleInitRangeMax);
+        cs.SetInts("_ParticleInitGridMin", ParticleInitGridMin);
+        cs.SetInts("_ParticleInitGridMax", ParticleInitGridMax);
+        cs.SetInts("_ParticleInitGridSize", ParticleInitGridSize);
         k.SetBuffer("_ParticleBufferWrite", _particleBuffer.Read);
         k.Dispatch(NumParticles);
 

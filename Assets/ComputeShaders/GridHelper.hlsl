@@ -37,6 +37,11 @@ inline float3 CellIndexToWorldPos(int3 index)
     return _GridMin + (index + 0.5f) * _GridSpacing;
 }
 
+inline float3 GridPosToWorldPos(float3 position)
+{
+    return _GridMin + position * _GridSpacing;
+}
+
 #define FOR_EACH_NEIGHBOR_CELL_START(C_INDEX, NC_INDEX, NC_ID, RANGE) {\
 for (int i = max((int)C_INDEX.x + RANGE[0], 0); i <= min((int)C_INDEX.x + RANGE[1], _GridSize.x - 1); ++i)\
 for (int j = max((int)C_INDEX.y + RANGE[2], 0); j <= min((int)C_INDEX.y + RANGE[3], _GridSize.y - 1); ++j)\
