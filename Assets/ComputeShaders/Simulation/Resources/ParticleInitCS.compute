@@ -21,7 +21,6 @@ void InitParticle(uint3 thread_id : SV_DispatchThreadID)
     const int y = p_id / (_ParticleInitGridSize.x * 2) % (_ParticleInitGridSize.y * 2);
     const int z = p_id / ((_ParticleInitGridSize.x * 2) * (_ParticleInitGridSize.y * 2));
     p.position = GridPosToWorldPos(_ParticleInitGridMin + 0.25f + float3(x, y, z) * 0.5f);
-
     ClampPosition(p.position, _GridMin, _GridMax);
 
     _ParticleBufferWrite[p_id] = p;

@@ -16,16 +16,12 @@ public class GridSortHelper<Object> : IDisposable
     {
         _gridSortHelperCs ??= new GPUComputeShader("GridSortHelperCS");
 
-        var cs = _gridSortHelperCs;
-        var k_make = cs.FindKernel("MakeObjectCellIDPair");
-        var k_clear = cs.FindKernel("ClearGridObjectID");
-        var k_set = cs.FindKernel("SetGridObjectID");
-        var k_rearrange = cs.FindKernel("RearrangeObject");
-
         int numObjects = objectBuffer.Size;
         // check for updates
         _objectCellIDPairBuffer.CheckSizeChanged(numObjects);
         int numGrids = gridObjectIDBuffer.Size;
+
+        var cs = _gridSortHelperCs;
 
         cs.SetInt("_NumObjects", numObjects);
 
@@ -36,27 +32,31 @@ public class GridSortHelper<Object> : IDisposable
         cs.SetFloat("_GridInvSpacing", 1f / gridSpacing);
 
         // make <cellID, objectID> pair
-        k_make.SetBuffer("_ObjectBufferRead", objectBuffer.Read);
-        k_make.SetBuffer("_ObjectCellIDPairBufferWrite", _objectCellIDPairBuffer);
-        k_make.Dispatch(numObjects);
+        var k = cs.FindKernel("MakeObjectCellIDPair");
+        k.SetBuffer("_ObjectBufferRead", objectBuffer.Read);
+        k.SetBuffer("_ObjectCellIDPairBufferWrite", _objectCellIDPairBuffer);
+        k.Dispatch(numObjects);
 
         // sort
         _radixSort.Sort(_objectCellIDPairBuffer, (uint)numGrids - 1);
 
         // clear grid objectID
-        k_clear.SetBuffer("_GridObjectIDBufferWrite", gridObjectIDBuffer);
-        k_clear.Dispatch(numGrids);
+        k = cs.FindKernel("ClearGridObjectID");
+        k.SetBuffer("_GridObjectIDBufferWrite", gridObjectIDBuffer);
+        k.Dispatch(numGrids);
 
         // set grid objectID
-        k_set.SetBuffer("_ObjectCellIDPairBufferRead", _objectCellIDPairBuffer);
-        k_set.SetBuffer("_GridObjectIDBufferWrite", gridObjectIDBuffer);
-        k_set.Dispatch(numObjects);
+        k = cs.FindKernel("SetGridObjectID");
+        k.SetBuffer("_ObjectCellIDPairBufferRead", _objectCellIDPairBuffer);
+        k.SetBuffer("_GridObjectIDBufferWrite", gridObjectIDBuffer);
+        k.Dispatch(numObjects);
 
         // rearrange object
-        k_rearrange.SetBuffer("_ObjectCellIDPairBufferRead", _objectCellIDPairBuffer);
-        k_rearrange.SetBuffer("_ObjectBufferRead", objectBuffer.Read);
-        k_rearrange.SetBuffer("_ObjectBufferWrite", objectBuffer.Write);
-        k_rearrange.Dispatch(numObjects);
+        k = cs.FindKernel("RearrangeObject");
+        k.SetBuffer("_ObjectCellIDPairBufferRead", _objectCellIDPairBuffer);
+        k.SetBuffer("_ObjectBufferRead", objectBuffer.Read);
+        k.SetBuffer("_ObjectBufferWrite", objectBuffer.Write);
+        k.Dispatch(numObjects);
 
         // swap object buffer
         objectBuffer.Swap();
