@@ -13,12 +13,14 @@ RWStructuredBuffer<uint> _GridTypeBufferWrite;
 RWStructuredBuffer<float3> _GridVelocityBufferWrite;
 RWStructuredBuffer<float3> _GridOriginalVelocityBufferWrite;
 
+#if !defined(USE_LINEAR_KERNEL) && !defined(USE_QUADRATIC_KERNEL)
+#define USE_LINEAR_KERNEL
+#endif
+
 #if defined(USE_LINEAR_KERNEL)
 static const int grid_range[6] = { -1, 1, -1, 1, -1, 1 };
 #elif defined(USE_QUADRATIC_KERNEL)
 static const int grid_range[6] = { -2, 1, -2, 1, -2, 1 };
-#else
-static const int grid_range[6] = { 0, 0, 0, 0, 0, 0 };
 #endif
 
 [numthreads(128, 1, 1)]

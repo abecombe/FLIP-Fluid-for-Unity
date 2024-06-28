@@ -1,6 +1,6 @@
 ﻿#pragma kernel CopyBuffer
 
-uint3 _NumThreads;
+#include "../DispatchHelper.hlsl"
 
 uint _BufferSize;
 uint _BufferBytes;

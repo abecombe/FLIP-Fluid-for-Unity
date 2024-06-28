@@ -270,72 +270,72 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         if (_viscosity <= 0f) return;
 
         var cs = _diffusionCs;
-        var k_diff = cs.FindKernel("Diffuse");
-        var k_vel = cs.FindKernel("UpdateVelocity");
 
         SetConstants(cs);
 
         // diffuse
+        var k = cs.FindKernel("Diffuse");
         float temp1 = _viscosity * DeltaTime;
         float3 temp2 = 1f / GridSpacing / GridSpacing;
         float temp3 = 1f / (1f + 2f * (temp2.x + temp2.y + temp2.z) * temp1);
         float4 diffusionParameter = new(temp1 * temp2 * temp3, temp3);
         cs.SetVector("_DiffusionParameter", diffusionParameter);
-        k_diff.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
-        k_diff.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
+        k.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
+        k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
         for (uint i = 0; i < _diffusionJacobiIteration; i++)
         {
-            k_diff.SetBuffer("_GridDiffusionBufferRead", _gridDiffusionBuffer.Read);
-            k_diff.SetBuffer("_GridDiffusionBufferWrite", _gridDiffusionBuffer.Write);
-            k_diff.Dispatch(NumGrids);
+            k.SetBuffer("_GridDiffusionBufferRead", _gridDiffusionBuffer.Read);
+            k.SetBuffer("_GridDiffusionBufferWrite", _gridDiffusionBuffer.Write);
+            k.Dispatch(NumGrids);
             _gridDiffusionBuffer.Swap();
         }
 
         // update velocity
-        k_vel.SetBuffer("_GridVelocityBufferWrite", _gridVelocityBuffer);
-        k_vel.SetBuffer("_GridDiffusionBufferRead", _gridDiffusionBuffer.Read);
-        k_vel.Dispatch(NumGrids);
+        k = cs.FindKernel("UpdateVelocity");
+        k.SetBuffer("_GridVelocityBufferWrite", _gridVelocityBuffer);
+        k.SetBuffer("_GridDiffusionBufferRead", _gridDiffusionBuffer.Read);
+        k.Dispatch(NumGrids);
     }
 
     // pressure projection term
     private void DispatchPressureProjection()
     {
         var cs = _pressureProjectionCs;
-        var k_div = cs.FindKernel("CalcDivergence");
-        var k_proj = cs.FindKernel("Project");
-        var k_vel = cs.FindKernel("UpdateVelocity");
 
         SetConstants(cs);
 
         // calc divergence
+        var k = cs.FindKernel("CalcDivergence");
         float3 divergenceParameter = 1f / GridSpacing;
         cs.SetVector("_DivergenceParameter", divergenceParameter);
-        k_div.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
-        k_div.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
-        k_div.SetBuffer("_GridDivergenceBufferWrite", _gridDivergenceBuffer);
-        k_div.Dispatch(NumGrids);
+        k.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
+        k.SetBuffer("_GridVelocityBufferRead", _gridVelocityBuffer);
+        k.SetBuffer("_GridDivergenceBufferWrite", _gridDivergenceBuffer);
+        k.Dispatch(NumGrids);
 
         // project
+        k = cs.FindKernel("Project");
         float3 temp1 = 1f / GridSpacing / GridSpacing;
         float temp2 = 1f / (2f * (temp1.x + temp1.y + temp1.z));
         float4 projectionParameter1 = new((float3)temp2 / GridSpacing / GridSpacing, -temp2);
         cs.SetVector("_PressureProjectionParameter1", projectionParameter1);
-        k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
-        k_proj.SetBuffer("_GridDivergenceBufferRead", _gridDivergenceBuffer);
+        k.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
+        k.SetBuffer("_GridDivergenceBufferRead", _gridDivergenceBuffer);
         for (uint i = 0; i < _pressureProjectionJacobiIteration; i++)
         {
-            k_proj.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
-            k_proj.SetBuffer("_GridPressureBufferWrite", _gridPressureBuffer.Write);
-            k_proj.Dispatch(NumGrids);
+            k.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
+            k.SetBuffer("_GridPressureBufferWrite", _gridPressureBuffer.Write);
+            k.Dispatch(NumGrids);
             _gridPressureBuffer.Swap();
         }
 
         // update velocity
+        k = cs.FindKernel("UpdateVelocity");
         float3 projectionParameter2 = 1f / GridSpacing;
         cs.SetVector("_PressureProjectionParameter2", projectionParameter2);
-        k_vel.SetBuffer("_GridVelocityBufferRW", _gridVelocityBuffer);
-        k_vel.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
-        k_vel.Dispatch(NumGrids);
+        k.SetBuffer("_GridVelocityBufferRW", _gridVelocityBuffer);
+        k.SetBuffer("_GridPressureBufferRead", _gridPressureBuffer.Read);
+        k.Dispatch(NumGrids);
     }
 
     // transferring velocity from grid to particle
@@ -391,60 +391,60 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private void DispatchDensityProjection()
     {
         var cs = _densityProjectionCs;
-        var k_init = cs.FindKernel("InitBuffer");
-        var k_add = cs.FindKernel("InterlockedAddWeight");
-        var k_weight = cs.FindKernel("CalcGridWeight");
-        var k_proj = cs.FindKernel("Project");
-        var k_delpos = cs.FindKernel("CalcPositionModify");
-        var k_update = cs.FindKernel("UpdatePosition");
 
         SetConstants(cs);
         cs.SetFloat("_InvAverageWeight", 1f / NumParticleInACell);
 
         // init buffers
-        k_init.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
-        k_init.SetBuffer("_GridUIntWeightBufferWrite", _gridUIntWeightBuffer);
-        k_init.Dispatch(NumGrids);
+        var k = cs.FindKernel("InitBuffer");
+        k.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
+        k.SetBuffer("_GridUIntWeightBufferWrite", _gridUIntWeightBuffer);
+        k.Dispatch(NumGrids);
 
         // interlocked add weight
-        k_add.SetBuffer("_ParticleBufferRead", _particleBuffer.Read);
-        k_add.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
-        k_add.SetBuffer("_GridUIntWeightBufferWrite", _gridUIntWeightBuffer);
-        k_add.Dispatch(NumParticles);
+        k = cs.FindKernel("InterlockedAddWeight");
+        k.SetBuffer("_ParticleBufferRead", _particleBuffer.Read);
+        k.SetBuffer("_GridTypeBufferWrite", _gridTypeBuffer);
+        k.SetBuffer("_GridUIntWeightBufferWrite", _gridUIntWeightBuffer);
+        k.Dispatch(NumParticles);
 
         // calc grid weight
-        k_weight.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
-        k_weight.SetBuffer("_GridUIntWeightBufferRead", _gridUIntWeightBuffer);
-        k_weight.SetBuffer("_GridGhostWeightBufferRead", _gridGhostWeightBuffer);
-        k_weight.SetBuffer("_GridWeightBufferWrite", _gridWeightBuffer);
-        k_weight.Dispatch(NumGrids);
+        k = cs.FindKernel("CalcGridWeight");
+        k.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
+        k.SetBuffer("_GridUIntWeightBufferRead", _gridUIntWeightBuffer);
+        k.SetBuffer("_GridGhostWeightBufferRead", _gridGhostWeightBuffer);
+        k.SetBuffer("_GridWeightBufferWrite", _gridWeightBuffer);
+        k.Dispatch(NumGrids);
 
         // project
+        k = cs.FindKernel("Project");
         float3 temp1 = 1f / GridSpacing / GridSpacing;
         float temp2 = 1f / (2f * (temp1.x + temp1.y + temp1.z));
         float4 projectionParameter1 = new((float3)temp2 / GridSpacing / GridSpacing, -temp2);
         cs.SetVector("_DensityProjectionParameter1", projectionParameter1);
-        k_proj.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
-        k_proj.SetBuffer("_GridWeightBufferRead", _gridWeightBuffer);
+        k.SetBuffer("_GridTypeBufferRead", _gridTypeBuffer);
+        k.SetBuffer("_GridWeightBufferRead", _gridWeightBuffer);
         for (uint i = 0; i < _densityProjectionJacobiIteration; i++)
         {
-            k_proj.SetBuffer("_GridDensityPressureBufferRead", i == 0 ? _gridFloatZeroBuffer : _gridDensityPressureBuffer.Read);
-            k_proj.SetBuffer("_GridDensityPressureBufferWrite", _gridDensityPressureBuffer.Write);
-            k_proj.Dispatch(NumGrids);
+            k.SetBuffer("_GridDensityPressureBufferRead", i == 0 ? _gridFloatZeroBuffer : _gridDensityPressureBuffer.Read);
+            k.SetBuffer("_GridDensityPressureBufferWrite", _gridDensityPressureBuffer.Write);
+            k.Dispatch(NumGrids);
             _gridDensityPressureBuffer.Swap();
         }
 
         // calc grid delta position
+        k = cs.FindKernel("CalcPositionModify");
         float3 projectionParameter2 = 1f / GridSpacing;
         cs.SetVector("_DensityProjectionParameter2", projectionParameter2);
-        k_delpos.SetBuffer("_GridDensityPressureBufferRead", _gridDensityPressureBuffer.Read);
-        k_delpos.SetBuffer("_GridPositionModifyBufferWrite", _gridPositionModifyBuffer);
-        k_delpos.Dispatch(NumGrids);
+        k.SetBuffer("_GridDensityPressureBufferRead", _gridDensityPressureBuffer.Read);
+        k.SetBuffer("_GridPositionModifyBufferWrite", _gridPositionModifyBuffer);
+        k.Dispatch(NumGrids);
 
         // update particle position
-        k_update.SetBuffer("_ParticleBufferRW", _particleBuffer.Read);
-        k_update.SetBuffer("_GridPositionModifyBufferRead", _gridPositionModifyBuffer);
-        k_update.Dispatch(NumParticles);
+        k = cs.FindKernel("UpdatePosition");
+        k.SetBuffer("_ParticleBufferRW", _particleBuffer.Read);
+        k.SetBuffer("_GridPositionModifyBufferRead", _gridPositionModifyBuffer);
+        k.Dispatch(NumParticles);
     }
 
     private void RenderParticles()

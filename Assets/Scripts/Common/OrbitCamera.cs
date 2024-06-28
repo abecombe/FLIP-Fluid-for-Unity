@@ -57,7 +57,7 @@ public class OrbitCamera : MonoBehaviour
     private void UpdateDistance(float scroll)
     {
         Distance -= scroll;
-        Distance = Mathf.Clamp(Distance, 0.1f, 40f);
+        Distance = Mathf.Clamp(Distance, 0.1f, 50f);
     }
 
     private void UpdatePosition()

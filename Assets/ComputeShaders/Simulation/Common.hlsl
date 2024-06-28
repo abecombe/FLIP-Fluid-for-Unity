@@ -6,7 +6,7 @@ float _DeltaTime;
 #include "Assets/Packages/GPUUtil/DispatchHelper.hlsl"
 
 #include "../Constant.hlsl"
-#include "../PCG.hlsl"
+#include "../Hash.hlsl"
 
 #include "../GridData.hlsl"
 #include "../GridHelper.hlsl"

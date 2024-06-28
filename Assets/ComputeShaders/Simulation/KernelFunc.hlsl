@@ -1,6 +1,10 @@
 ﻿#ifndef CS_SIMULATION_KERNEL_FUNC_HLSL
 #define CS_SIMULATION_KERNEL_FUNC_HLSL
 
+#if !defined(USE_LINEAR_KERNEL) && !defined(USE_QUADRATIC_KERNEL)
+#define USE_LINEAR_KERNEL
+#endif
+
 inline float3 GetLinearWeight(float3 abs_x)
 {
     return saturate(1.0f - abs_x);
@@ -15,16 +19,11 @@ inline float GetWeight(float3 p_pos, float3 c_pos, float grid_inv_spacing)
 {
     const float3 dist = abs((p_pos - c_pos) * grid_inv_spacing);
 
-    #if defined(USE_LINEAR_KERNEL)
+#if defined(USE_LINEAR_KERNEL)
     const float3 weight = GetLinearWeight(dist);
-
-    #elif defined(USE_QUADRATIC_KERNEL)
+#elif defined(USE_QUADRATIC_KERNEL)
     const float3 weight = GetQuadraticWeight(dist);
-
-    #else
-    const float3 weight = 0;
-
-    #endif
+#endif
 
     return weight.x * weight.y * weight.z;
 }

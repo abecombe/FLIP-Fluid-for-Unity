@@ -9,24 +9,23 @@ namespace Abecombe.GPUUtil
 {
     public class GPUBuffer<T> : IDisposable
     {
-        public GraphicsBuffer Data => _buffer;
-        public int Size => _buffer.count;
-        public int Stride => _buffer.stride;
-        public int Bytes => _buffer.count * _buffer.stride;
+        public GraphicsBuffer Data { get; private set; }
+        public int Size => Data.count;
+        public int Stride => Data.stride;
+        public int Bytes => Size * Stride;
 
-        private GraphicsBuffer _buffer;
         private bool _inited = false;
 
         public void Init(int size)
         {
             Dispose();
-            _buffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, size, Marshal.SizeOf(typeof(T)));
+            Data = new GraphicsBuffer(GraphicsBuffer.Target.Structured, size, Marshal.SizeOf(typeof(T)));
             _inited = true;
         }
 
         public void Dispose()
         {
-            if (_inited) _buffer.Release();
+            if (_inited) Data.Release();
             _inited = false;
         }
 
@@ -40,19 +39,19 @@ namespace Abecombe.GPUUtil
 
         public void SetData(T[] data)
         {
-            _buffer.SetData(data);
+            Data.SetData(data);
         }
         public void SetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            _buffer.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+            Data.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
         public void GetData(T[] data)
         {
-            _buffer.GetData(data);
+            Data.GetData(data);
         }
         public void GetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            _buffer.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+            Data.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
 
         public static implicit operator GraphicsBuffer(GPUBuffer<T> buffer)
@@ -63,30 +62,28 @@ namespace Abecombe.GPUUtil
 
     public class GPUDoubleBuffer<T> : IDisposable
     {
-        public GPUBuffer<T> Read => _bufferRead;
-        public GPUBuffer<T> Write => _bufferWrite;
-        public int Size => _bufferRead.Size;
-        public int Stride => _bufferRead.Stride;
-        public int Bytes => _bufferRead.Bytes;
+        public GPUBuffer<T> Read { get; private set; } = new();
+        public GPUBuffer<T> Write { get; private set; } = new();
+        public int Size => Read.Size;
+        public int Stride => Read.Stride;
+        public int Bytes => Read.Bytes;
 
-        private GPUBuffer<T> _bufferRead = new();
-        private GPUBuffer<T> _bufferWrite = new();
-        private GPUComputeShader _copyCs;
+        private GPUComputeShader _gpuUtilCs;
         private bool _inited = false;
 
         public void Init(int size)
         {
             Dispose();
-            _bufferRead.Init(size);
-            _bufferWrite.Init(size);
-            _copyCs = new GPUComputeShader("GPUUtil");
+            Read.Init(size);
+            Write.Init(size);
+            _gpuUtilCs = new GPUComputeShader("GPUUtil");
             _inited = true;
         }
 
         public void Dispose()
         {
-            if (_inited) _bufferRead.Dispose();
-            if (_inited) _bufferWrite.Dispose();
+            if (_inited) Read.Dispose();
+            if (_inited) Write.Dispose();
             _inited = false;
         }
 
@@ -100,74 +97,77 @@ namespace Abecombe.GPUUtil
 
         public void Swap()
         {
-            (_bufferRead, _bufferWrite) = (_bufferWrite, _bufferRead);
+            (Read, Write) = (Write, Read);
         }
 
         public void CopyReadToWrite()
         {
-            var cs = _copyCs;
+            var cs = _gpuUtilCs;
             var kernel = cs.FindKernel("CopyBuffer");
             cs.SetInt("_BufferSize", Size);
             cs.SetInt("_BufferBytes", Bytes);
-            kernel.SetBuffer("_BufferRead", _bufferRead);
-            kernel.SetBuffer("_BufferWrite", _bufferWrite);
+            kernel.SetBuffer("_BufferRead", Read);
+            kernel.SetBuffer("_BufferWrite", Write);
             kernel.Dispatch(Size);
         }
 
         public void SetData(T[] data)
         {
-            _bufferRead.SetData(data);
+            Read.SetData(data);
         }
         public void SetData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            _bufferRead.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+            Read.SetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
         public void GetReadData(T[] data)
         {
-            _bufferRead.GetData(data);
+            Read.GetData(data);
         }
         public void GetReadData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            _bufferRead.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+            Read.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
         public void GetWriteData(T[] data)
         {
-            _bufferWrite.GetData(data);
+            Write.GetData(data);
         }
         public void GetWriteData(T[] data, int managedBufferStartIndex, int graphicsBufferStartIndex, int count)
         {
-            _bufferWrite.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
+            Write.GetData(data, managedBufferStartIndex, graphicsBufferStartIndex, count);
         }
     }
 
     public class GPUTexture2D : IDisposable
     {
-        public RenderTexture Data => _tex;
-        public int Width => _tex.width;
-        public int Height => _tex.height;
-        public RenderTextureFormat Format => _tex.format;
-        public FilterMode FilterMode => _tex.filterMode;
-        public TextureWrapMode WrapMode => _tex.wrapMode;
+        public RenderTexture Data { get; private set; }
+        public int Width => Data.width;
+        public int Height => Data.height;
+        public RenderTextureFormat Format => Data.format;
+        public FilterMode FilterMode => Data.filterMode;
+        public TextureWrapMode WrapMode => Data.wrapMode;
 
-        private RenderTexture _tex;
         private bool _inited = false;
 
         public void Init(int width, int height, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
         {
             Dispose();
-            _tex = new RenderTexture(width, height, 0, format)
+            Data = new RenderTexture(width, height, 0, format)
             {
                 filterMode = filterMode,
                 wrapMode = wrapMode,
                 enableRandomWrite = true
             };
-            _tex.Create();
+            Data.Create();
             _inited = true;
+        }
+        public void Init(int2 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            Init(size.x, size.y, format, filterMode, wrapMode);
         }
 
         public void Dispose()
         {
-            if (_inited) _tex.Release();
+            if (_inited) Data.Release();
             _inited = false;
         }
 
@@ -181,6 +181,10 @@ namespace Abecombe.GPUUtil
             {
                 Init(width, height, Format, FilterMode, WrapMode);
             }
+        }
+        public void CheckSizeChanged(int2 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            CheckSizeChanged(size.x, size.y, format, filterMode, wrapMode);
         }
 
         public static implicit operator RenderTexture(GPUTexture2D tex)
@@ -196,30 +200,33 @@ namespace Abecombe.GPUUtil
 
     public class GPUDoubleTexture2D : IDisposable
     {
-        public GPUTexture2D Read => _texRead;
-        public GPUTexture2D Write => _texWrite;
-        public int Width => _texRead.Width;
-        public int Height => _texRead.Height;
-        public RenderTextureFormat Format => _texRead.Format;
-        public FilterMode FilterMode => _texRead.FilterMode;
-        public TextureWrapMode WrapMode => _texRead.WrapMode;
+        public GPUTexture2D Read { get; private set; } = new();
+        public GPUTexture2D Write { get; private set; } = new();
+        public int Width => Read.Width;
+        public int Height => Read.Height;
+        public int2 Size => new(Width, Height);
+        public RenderTextureFormat Format => Read.Format;
+        public FilterMode FilterMode => Read.FilterMode;
+        public TextureWrapMode WrapMode => Read.WrapMode;
 
-        private GPUTexture2D _texRead = new();
-        private GPUTexture2D _texWrite = new();
         private bool _inited = false;
 
         public void Init(int width, int height, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
         {
             Dispose();
-            _texRead.Init(width, height, format, filterMode, wrapMode);
-            _texWrite.Init(width, height, format, filterMode, wrapMode);
+            Read.Init(width, height, format, filterMode, wrapMode);
+            Write.Init(width, height, format, filterMode, wrapMode);
             _inited = true;
+        }
+        public void Init(int2 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            Init(size.x, size.y, format, filterMode, wrapMode);
         }
 
         public void Dispose()
         {
-            if (_inited) _texRead.Dispose();
-            if (_inited) _texWrite.Dispose();
+            if (_inited) Read.Dispose();
+            if (_inited) Write.Dispose();
             _inited = false;
         }
 
@@ -234,30 +241,34 @@ namespace Abecombe.GPUUtil
                 Init(width, height, Format, FilterMode, WrapMode);
             }
         }
+        public void CheckSizeChanged(int2 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            CheckSizeChanged(size.x, size.y, format, filterMode, wrapMode);
+        }
 
         public void Swap()
         {
-            (_texRead, _texWrite) = (_texWrite, _texRead);
+            (Read, Write) = (Write, Read);
         }
     }
 
     public class GPUTexture3D : IDisposable
     {
-        public RenderTexture Data => _tex;
-        public int Width => _tex.width;
-        public int Height => _tex.height;
-        public int Depth => _tex.volumeDepth;
-        public RenderTextureFormat Format => _tex.format;
-        public FilterMode FilterMode => _tex.filterMode;
-        public TextureWrapMode WrapMode => _tex.wrapMode;
+        public RenderTexture Data { get; private set; }
+        public int Width => Data.width;
+        public int Height => Data.height;
+        public int Depth => Data.volumeDepth;
+        public int3 Size => new(Width, Height, Depth);
+        public RenderTextureFormat Format => Data.format;
+        public FilterMode FilterMode => Data.filterMode;
+        public TextureWrapMode WrapMode => Data.wrapMode;
 
-        private RenderTexture _tex;
         private bool _inited = false;
 
         public void Init(int width, int height, int depth, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
         {
             Dispose();
-            _tex = new RenderTexture(width, height, 0, format)
+            Data = new RenderTexture(width, height, 0, format)
             {
                 filterMode = filterMode,
                 wrapMode = wrapMode,
@@ -265,13 +276,17 @@ namespace Abecombe.GPUUtil
                 volumeDepth = depth,
                 enableRandomWrite = true
             };
-            _tex.Create();
+            Data.Create();
             _inited = true;
+        }
+        public void Init(int3 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            Init(size.x, size.y, size.z, format, filterMode, wrapMode);
         }
 
         public void Dispose()
         {
-            if (_inited) _tex.Release();
+            if (_inited) Data.Release();
             _inited = false;
         }
 
@@ -285,6 +300,10 @@ namespace Abecombe.GPUUtil
             {
                 Init(width, height, depth, Format, FilterMode, WrapMode);
             }
+        }
+        public void CheckSizeChanged(int3 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            CheckSizeChanged(size.x, size.y, size.z, format, filterMode, wrapMode);
         }
 
         public static implicit operator RenderTexture(GPUTexture3D tex)
@@ -300,31 +319,34 @@ namespace Abecombe.GPUUtil
 
     public class GPUDoubleTexture3D : IDisposable
     {
-        public GPUTexture3D Read => _texRead;
-        public GPUTexture3D Write => _texWrite;
-        public int Width => _texRead.Width;
-        public int Height => _texRead.Height;
-        public int Depth => _texRead.Depth;
-        public RenderTextureFormat Format => _texRead.Format;
-        public FilterMode FilterMode => _texRead.FilterMode;
-        public TextureWrapMode WrapMode => _texRead.WrapMode;
+        public GPUTexture3D Read { get; private set; } = new();
+        public GPUTexture3D Write { get; private set; } = new();
+        public int Width => Read.Width;
+        public int Height => Read.Height;
+        public int Depth => Read.Depth;
+        public int3 Size => new(Width, Height, Depth);
+        public RenderTextureFormat Format => Read.Format;
+        public FilterMode FilterMode => Read.FilterMode;
+        public TextureWrapMode WrapMode => Read.WrapMode;
 
-        private GPUTexture3D _texRead = new();
-        private GPUTexture3D _texWrite = new();
         private bool _inited = false;
 
         public void Init(int width, int height, int depth, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
         {
             Dispose();
-            _texRead.Init(width, height, depth, format, filterMode, wrapMode);
-            _texWrite.Init(width, height, depth, format, filterMode, wrapMode);
+            Read.Init(width, height, depth, format, filterMode, wrapMode);
+            Write.Init(width, height, depth, format, filterMode, wrapMode);
             _inited = true;
+        }
+        public void Init(int3 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            Init(size.x, size.y, size.z, format, filterMode, wrapMode);
         }
 
         public void Dispose()
         {
-            if (_inited) _texRead.Dispose();
-            if (_inited) _texWrite.Dispose();
+            if (_inited) Read.Dispose();
+            if (_inited) Write.Dispose();
             _inited = false;
         }
 
@@ -339,10 +361,14 @@ namespace Abecombe.GPUUtil
                 Init(width, height, depth, Format, FilterMode, WrapMode);
             }
         }
+        public void CheckSizeChanged(int3 size, RenderTextureFormat format = RenderTextureFormat.ARGBFloat, FilterMode filterMode = FilterMode.Bilinear, TextureWrapMode wrapMode = TextureWrapMode.Clamp)
+        {
+            CheckSizeChanged(size.x, size.y, size.z, format, filterMode, wrapMode);
+        }
 
         public void Swap()
         {
-            (_texRead, _texWrite) = (_texWrite, _texRead);
+            (Read, Write) = (Write, Read);
         }
     }
 
@@ -395,6 +421,18 @@ namespace Abecombe.GPUUtil
         {
             Cs.SetInts(name, value.ToInts());
         }
+        public void SetInts(string name, uint2 value)
+        {
+            Cs.SetInts(name, value.ToInts());
+        }
+        public void SetInts(string name, uint3 value)
+        {
+            Cs.SetInts(name, value.ToInts());
+        }
+        public void SetInts(string name, uint4 value)
+        {
+            Cs.SetInts(name, value.ToInts());
+        }
         public void SetInts(string name, params int[] value)
         {
             Cs.SetInts(name, value);
@@ -403,6 +441,10 @@ namespace Abecombe.GPUUtil
 
         #region SetFloat
         public void SetFloat(string name, int value)
+        {
+            Cs.SetFloat(name, value);
+        }
+        public void SetFloat(string name, uint value)
         {
             Cs.SetFloat(name, value);
         }
@@ -422,6 +464,18 @@ namespace Abecombe.GPUUtil
             Cs.SetVector(name, value.ToVector());
         }
         public void SetVector(string name, int4 value)
+        {
+            Cs.SetVector(name, value.ToVector());
+        }
+        public void SetVector(string name, uint2 value)
+        {
+            Cs.SetVector(name, value.ToVector());
+        }
+        public void SetVector(string name, uint3 value)
+        {
+            Cs.SetVector(name, value.ToVector());
+        }
+        public void SetVector(string name, uint4 value)
         {
             Cs.SetVector(name, value.ToVector());
         }
@@ -453,6 +507,10 @@ namespace Abecombe.GPUUtil
 
         #region SetMatrix
         public void SetMatrix(string name, Matrix4x4 matrix)
+        {
+            Cs.SetMatrix(name, matrix);
+        }
+        public void SetMatrix(string name, float4x4 matrix)
         {
             Cs.SetMatrix(name, matrix);
         }
@@ -515,19 +573,29 @@ namespace Abecombe.GPUUtil
             Cs.SetInts("_NumGroups", groupSizeX, groupSizeY, groupSizeZ);
             Cs.Dispatch(ID, groupSizeX, groupSizeY, groupSizeZ);
         }
+        public void Dispatch(int3 size)
+        {
+            Dispatch(size.x, size.y, size.z);
+        }
         #endregion
     }
 
     public static class GPUCastTool
     {
-        public static int[] ToInts(this int2 i2) => new int[] { i2.x, i2.y };
-        public static int[] ToInts(this int3 i3) => new int[] { i3.x, i3.y, i3.z };
-        public static int[] ToInts(this int4 i4) => new int[] { i4.x, i4.y, i4.z, i4.w };
-        public static Vector4 ToVector(this int2 i2) => new Vector4(i2.x, i2.y);
-        public static Vector4 ToVector(this int3 i3) => new Vector4(i3.x, i3.y, i3.z);
-        public static Vector4 ToVector(this int4 i4) => new Vector4(i4.x, i4.y, i4.z, i4.w);
-        public static Vector4 ToVector(this float2 f2) => new Vector4(f2.x, f2.y);
-        public static Vector4 ToVector(this float3 f3) => new Vector4(f3.x, f3.y, f3.z);
-        public static Vector4 ToVector(this float4 f4) => new Vector4(f4.x, f4.y, f4.z, f4.w);
+        public static int[] ToInts(this int2 i2) => new[] { i2.x, i2.y };
+        public static int[] ToInts(this int3 i3) => new[] { i3.x, i3.y, i3.z };
+        public static int[] ToInts(this int4 i4) => new[] { i4.x, i4.y, i4.z, i4.w };
+        public static int[] ToInts(this uint2 i2) => new[] { (int)i2.x, (int)i2.y };
+        public static int[] ToInts(this uint3 i3) => new[] { (int)i3.x, (int)i3.y, (int)i3.z };
+        public static int[] ToInts(this uint4 i4) => new[] { (int)i4.x, (int)i4.y, (int)i4.z, (int)i4.w };
+        public static Vector4 ToVector(this int2 i2) => new(i2.x, i2.y);
+        public static Vector4 ToVector(this int3 i3) => new(i3.x, i3.y, i3.z);
+        public static Vector4 ToVector(this int4 i4) => new(i4.x, i4.y, i4.z, i4.w);
+        public static Vector4 ToVector(this uint2 i2) => new(i2.x, i2.y);
+        public static Vector4 ToVector(this uint3 i3) => new(i3.x, i3.y, i3.z);
+        public static Vector4 ToVector(this uint4 i4) => new(i4.x, i4.y, i4.z, i4.w);
+        public static Vector4 ToVector(this float2 f2) => new(f2.x, f2.y);
+        public static Vector4 ToVector(this float3 f3) => new(f3.x, f3.y, f3.z);
+        public static Vector4 ToVector(this float4 f4) => new(f4.x, f4.y, f4.z, f4.w);
     }
 }
