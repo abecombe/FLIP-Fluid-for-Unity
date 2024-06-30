@@ -372,6 +372,73 @@ namespace Abecombe.GPUUtil
         }
     }
 
+    public class GPUBufferWithArgs : IDisposable
+    {
+        public GraphicsBuffer Data { get; private set; }
+        public uint MeshIndexCount => _args[0];
+        public uint NumInstances => _args[1];
+
+        private uint[] _args = { 0, 0, 0, 0, 0 };
+        private bool _inited = false;
+
+        public void Init(uint meshIndexCount, uint numInstances)
+        {
+            Dispose();
+            Data = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, 5 * sizeof(uint));
+            _args[0] = meshIndexCount;
+            _args[1] = numInstances;
+            Data.SetData(_args);
+            _inited = true;
+        }
+
+        public void Dispose()
+        {
+            if (_inited) Data.Release();
+            _inited = false;
+        }
+
+        public void CheckArgsChanged(uint meshIndexCount, uint numInstances)
+        {
+            if (!_inited || MeshIndexCount != meshIndexCount || NumInstances != numInstances)
+            {
+                Init(meshIndexCount, numInstances);
+            }
+        }
+
+        public void CheckIndexCountChanged(uint meshIndexCount)
+        {
+            if (!_inited)
+            {
+                Init(meshIndexCount, 0);
+            }
+            else if (MeshIndexCount != meshIndexCount)
+            {
+                Data.GetData(_args);
+                _args[0] = meshIndexCount;
+                Data.SetData(_args);
+            }
+        }
+
+        public void CheckNumInstancesChanged(uint numInstances)
+        {
+            if (!_inited)
+            {
+                Init(0, numInstances);
+            }
+            else if (NumInstances != numInstances)
+            {
+                Data.GetData(_args);
+                _args[1] = numInstances;
+                Data.SetData(_args);
+            }
+        }
+
+        public static implicit operator GraphicsBuffer(GPUBufferWithArgs bufferWithArgs)
+        {
+            return bufferWithArgs.Data;
+        }
+    }
+
     public class GPUComputeShader
     {
         public ComputeShader Cs { get; }
