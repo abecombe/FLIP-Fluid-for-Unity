@@ -3,6 +3,7 @@
 
 struct Particle
 {
+    float id;
     float3 position;
     float3 velocity;
 };

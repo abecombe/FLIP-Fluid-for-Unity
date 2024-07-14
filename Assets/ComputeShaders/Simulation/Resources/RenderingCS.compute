@@ -14,5 +14,5 @@ void PrepareRendering(uint3 thread_id : SV_DispatchThreadID)
 
     const Particle p = _ParticleBufferRead[p_id];
 
-    _ParticleRenderingBufferWrite[p_id] = float4(p.position, length(p.velocity));
+    _ParticleRenderingBufferWrite[p.id] = float4(p.position, length(p.velocity));
 }

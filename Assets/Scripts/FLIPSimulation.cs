@@ -11,6 +11,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #region Structs & Enums
     private struct Particle
     {
+        public uint ID;
         public float3 Position;
         public float3 Velocity;
     }
@@ -54,6 +55,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private int3 ParticleInitGridMin => math.clamp((int3)math.round((_particleInitRangeMin - GridMin) * GridInvSpacing - 0.5f), 0, GridSize - 1);
     private int3 ParticleInitGridMax => math.clamp((int3)math.round((_particleInitRangeMax - GridMin) * GridInvSpacing - 0.5f), ParticleInitGridMin, GridSize - 1);
     private int3 ParticleInitGridSize => ParticleInitGridMax - ParticleInitGridMin + 1;
+    private float ParticleRadius => GridSpacing * 0.4f;
 
     // Grid Params
     private float3 TempSimulationSize => transform.localScale;
@@ -114,6 +116,14 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     [SerializeField] private RosettaUIRoot _rosettaUIRoot;
     [SerializeField] private KeyCode _toggleUIKey = KeyCode.Tab;
     [SerializeField] private bool _showFps = true;
+
+    // Rendering
+    [SerializeField] private bool _useVFXGraph = true;
+    private VisualEffect _vfx;
+    private Mesh _quadMesh;
+    private Material _particleInstanceMaterial;
+    private MaterialPropertyBlock _mpb;
+    private GPUBufferWithArgs _particleRenderingBufferWithArgs = new();
     #endregion
 
     #region Initialize Functions
@@ -145,12 +155,26 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         k.SetBuffer("_ParticleBufferWrite", _particleBuffer.Read);
         k.Dispatch(NumParticles);
 
+        // init rendering
+        _particleInstanceMaterial = new Material(Shader.Find("ParticleRendering/ParticleInstance"));
+        _quadMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
+        _particleRenderingBufferWithArgs.Init(_quadMesh.GetIndexCount(0), (uint)_particleRenderingBuffer.Size);
+        _mpb = new MaterialPropertyBlock();
+        _mpb.SetBuffer("_ParticleRenderingBuffer", _particleRenderingBuffer);
+        _mpb.SetFloat("_Radius", ParticleRadius);
+        _mpb.SetFloat("_NearClipPlane", Camera.main.nearClipPlane);
+        _mpb.SetFloat("_FarClipPlane", Camera.main.farClipPlane);
+        _mpb.SetVector("_SlowColor", new Color(0f, 0.3891521f, 0.7735849f, 1f));
+        _mpb.SetVector("_FastColor", new Color(0.5999911f, 0.7552593f, 0.9150943f, 1f));
+        _mpb.SetVector("_VelocityRange", new Vector2(2f, 8f));
+        _mpb.SetFloat("_FresnelPower", 0.3f);
+
         // init vfx
-        var vfx = FindObjectOfType<VisualEffect>();
-        vfx.Reinit();
-        vfx.SetFloat("NumInstance", NumParticles);
-        vfx.SetFloat("Size", GridSpacing * 0.8f);
-        vfx.SetGraphicsBuffer("ParticleBuffer", _particleRenderingBuffer);
+        _vfx = FindObjectOfType<VisualEffect>();
+        _vfx.Reinit();
+        _vfx.SetFloat("NumInstance", NumParticles);
+        _vfx.SetFloat("Size", ParticleRadius * 2f);
+        _vfx.SetGraphicsBuffer("ParticleBuffer", _particleRenderingBuffer);
     }
 
     private void InitGridBuffers()
@@ -456,6 +480,16 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         k.SetBuffer("_ParticleRenderingBufferWrite", _particleRenderingBuffer);
 
         k.Dispatch(NumParticles);
+
+        if (_useVFXGraph)
+        {
+            _vfx.enabled = true;
+        }
+        else
+        {
+            _vfx.enabled = false;
+            CustomGraphics.DrawMeshInstancedIndirect(_quadMesh, _particleInstanceMaterial, _mpb, _particleRenderingBufferWithArgs, LayerMask.NameToLayer("Default"));
+        }
     }
     #endregion
 
@@ -480,6 +514,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         _gridFloatZeroBuffer.Dispose();
 
         _gridSortHelper.Dispose();
+
+        _particleRenderingBufferWithArgs.Dispose();
     }
     #endregion
 
@@ -529,6 +565,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
                     {
                         FindObjectOfType<FPSCounter>().enabled = _showFps;
                     }),
+                UI.Space().SetHeight(5f),
+                UI.Field("Use VFXGraph", () => _useVFXGraph),
                 UI.Space().SetHeight(10f),
                 UI.Button("Restart", InitGPUBuffers),
                 UI.Space().SetHeight(5f)

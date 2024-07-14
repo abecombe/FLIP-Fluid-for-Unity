@@ -17,6 +17,8 @@ void InitParticle(uint3 thread_id : SV_DispatchThreadID)
 
     Particle p = (Particle)0;
 
+    p.id = p_id;
+
     const int x = p_id % (_ParticleInitGridSize.x * 2);
     const int y = p_id / (_ParticleInitGridSize.x * 2) % (_ParticleInitGridSize.y * 2);
     const int z = p_id / ((_ParticleInitGridSize.x * 2) * (_ParticleInitGridSize.y * 2));
