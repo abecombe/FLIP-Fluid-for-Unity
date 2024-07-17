@@ -39,7 +39,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #endregion
 
     #region Properties
-    private const float DeltaTime = 1f / 60f;
+    private float DeltaTime => 1f / (_fpsSetter.TargetFPS * _frameSimulationIteration);
 
     private const int NumParticleInACell = 8;
     private int NumParticles => ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInACell;
@@ -115,7 +115,6 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     // RosettaUI
     [SerializeField] private RosettaUIRoot _rosettaUIRoot;
     [SerializeField] private KeyCode _toggleUIKey = KeyCode.Tab;
-    [SerializeField] private bool _showFps = true;
 
     // Rendering
     [SerializeField] private bool _useVFXGraph = true;
@@ -124,9 +123,31 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private Material _particleInstanceMaterial;
     private MaterialPropertyBlock _mpb;
     private GPUBufferWithArgs _particleRenderingBufferWithArgs = new();
+
+    // FPS Settings
+    private int _frameSimulationIteration = 1;
+    private FPSSetter _fpsSetter;
+    private FPSCounter _fpsCounter;
     #endregion
 
     #region Initialize Functions
+    private void InitFPS()
+    {
+        _fpsSetter = FindObjectOfType<FPSSetter>();
+        if (_fpsSetter == null)
+        {
+            _fpsSetter = gameObject.AddComponent<FPSSetter>();
+        }
+        _fpsSetter.enabled = true;
+
+        _fpsCounter = FindObjectOfType<FPSCounter>();
+        if (_fpsCounter == null)
+        {
+            _fpsCounter = gameObject.AddComponent<FPSCounter>();
+        }
+        _fpsCounter.enabled = true;
+    }
+
     private void InitComputeShaders()
     {
         _particleInitCs = new GPUComputeShader("ParticleInitCS");
@@ -254,7 +275,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
     // external force term with reference to https://github.com/dli/fluid
     private float2 _lastMousePlane = float2.zero;
-    private void DispatchExternalForce()
+    private void DispatchExternalForce(bool isFirstIteration)
     {
         var cs = _externalForceCs;
         var k = cs.FindKernel("AddExternalForce");
@@ -265,25 +286,28 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
         cs.SetVector("_Gravity", _gravity);
 
-        var cam = Camera.main;
-        var mouseRay = cam.ScreenPointToRay(Input.mousePosition);
-        cs.SetVector("_RayOrigin", mouseRay.origin);
-        cs.SetVector("_RayDirection", mouseRay.direction);
+        if (isFirstIteration)
+        {
+            var cam = Camera.main;
+            var mouseRay = cam.ScreenPointToRay(Input.mousePosition);
+            cs.SetVector("_RayOrigin", mouseRay.origin);
+            cs.SetVector("_RayDirection", mouseRay.direction);
 
-        var height = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 2f;
-        var width = height * Screen.width / Screen.height;
-        var mousePlane = ((float3)Input.mousePosition).xy / new float2(Screen.width, Screen.height) - 0.5f;
-        mousePlane *= new float2(width, height);
-        mousePlane *= cam.GetComponent<OrbitCamera>().Distance;
-        var cameraViewMatrix = cam.worldToCameraMatrix;
-        var cameraRight = new float3(cameraViewMatrix[0], cameraViewMatrix[4], cameraViewMatrix[8]);
-        var cameraUp = new float3(cameraViewMatrix[1], cameraViewMatrix[5], cameraViewMatrix[9]);
-        var mouseVelocity = (mousePlane - _lastMousePlane) / DeltaTime;
-        if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetMouseButton(2) || Time.frameCount <= 1)
-            mouseVelocity = float2.zero;
-        _lastMousePlane = mousePlane;
-        var mouseAxisVelocity = mouseVelocity.x * cameraRight + mouseVelocity.y * cameraUp;
-        cs.SetVector("_MouseForceParameter", new float4(mouseAxisVelocity * _mouseForce, _mouseForceRange));
+            var height = Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad) * 2f;
+            var width = height * Screen.width / Screen.height;
+            var mousePlane = ((float3)Input.mousePosition).xy / new float2(Screen.width, Screen.height) - 0.5f;
+            mousePlane *= new float2(width, height);
+            mousePlane *= cam.GetComponent<OrbitCamera>().Distance;
+            var cameraViewMatrix = cam.worldToCameraMatrix;
+            var cameraRight = new float3(cameraViewMatrix[0], cameraViewMatrix[4], cameraViewMatrix[8]);
+            var cameraUp = new float3(cameraViewMatrix[1], cameraViewMatrix[5], cameraViewMatrix[9]);
+            var mouseVelocity = (mousePlane - _lastMousePlane) / Time.smoothDeltaTime;
+            if (Input.GetMouseButton(0) || Input.GetMouseButton(1) || Input.GetMouseButton(2) || Time.frameCount <= 1)
+                mouseVelocity = float2.zero;
+            _lastMousePlane = mousePlane;
+            var mouseAxisVelocity = mouseVelocity.x * cameraRight + mouseVelocity.y * cameraUp;
+            cs.SetVector("_MouseForceParameter", new float4(mouseAxisVelocity * _mouseForce, _mouseForceRange));
+        }
 
         k.Dispatch(NumGrids);
     }
@@ -560,11 +584,12 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
                     UI.Slider("Density Projection", () => _densityProjectionJacobiIteration)
                 ),
                 UI.Space().SetHeight(10f),
-                UI.Field("Show FPS", () => _showFps)
-                    .RegisterValueChangeCallback(() =>
-                    {
-                        FindObjectOfType<FPSCounter>().enabled = _showFps;
-                    }),
+                UI.Label("FPS Setting"),
+                UI.Indent(
+                    UI.Field("Frame Sim Iteration", () => _frameSimulationIteration, value => _frameSimulationIteration = math.clamp(value, 1, 10)),
+                    UI.Slider("Target FPS", () => _fpsSetter.TargetFPS, 15, 120),
+                    UI.Field("Show FPS", () => _fpsCounter.ShowFPS)
+                ),
                 UI.Space().SetHeight(5f),
                 UI.Field("Use VFXGraph", () => _useVFXGraph),
                 UI.Space().SetHeight(10f),
@@ -587,6 +612,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     #region MonoBehaviour
     private void OnEnable()
     {
+        InitFPS();
+
         InitComputeShaders();
         InitGPUBuffers();
     }
@@ -598,13 +625,17 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
     private void Update()
     {
-        DispatchParticleToGrid();
-        DispatchExternalForce();
-        DispatchDiffusion();
-        DispatchPressureProjection();
-        DispatchGridToParticle();
-        DispatchAdvection();
-        if (_activeDensityProjection) DispatchDensityProjection();
+        for (int i = 0; i < _frameSimulationIteration; i++)
+        {
+            DispatchParticleToGrid();
+            DispatchExternalForce(i == 0);
+            DispatchDiffusion();
+            DispatchPressureProjection();
+            DispatchGridToParticle();
+            DispatchAdvection();
+            if (_activeDensityProjection) DispatchDensityProjection();
+        }
+
         RenderParticles();
 
         UpdateRosettaUI();

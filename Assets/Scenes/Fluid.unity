@@ -334,51 +334,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &206157498
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 206157501}
-  - component: {fileID: 206157502}
-  m_Layer: 0
-  m_Name: FPSSetter
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &206157501
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 206157498}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1675498001}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &206157502
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 206157498}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 74f26fd227553b949bf6c72176508192, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _targetFPS: 60
 --- !u!1 &703023324
 GameObject:
   m_ObjectHideFlags: 0
@@ -620,7 +575,7 @@ MonoBehaviour:
   _densityProjectionJacobiIteration: 30
   _rosettaUIRoot: {fileID: 1005516105}
   _toggleUIKey: 9
-  _showFps: 1
+  _useVFXGraph: 1
 --- !u!4 &1099404996
 Transform:
   m_ObjectHideFlags: 0
@@ -913,54 +868,6 @@ MonoBehaviour:
   _upDownSensitivity: 0.5
   _zoomWheelSensitivity: 12
   _zoomMiddleClickSensitivity: 1
---- !u!1 &1436220075
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1436220077}
-  - component: {fileID: 1436220076}
-  m_Layer: 0
-  m_Name: FPSCounter
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1436220076
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1436220075}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2aa96b5e234372a43ac9537a6601aff8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  _fontSize: 32
-  _normalColor: {r: 1, g: 1, b: 1, a: 1}
-  _lowColor: {r: 1, g: 0, b: 0, a: 1}
-  _lowFps: 58
---- !u!4 &1436220077
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1436220075}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1675498001}
-  m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1675498000
 GameObject:
   m_ObjectHideFlags: 0
@@ -970,6 +877,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1675498001}
+  - component: {fileID: 1675498003}
+  - component: {fileID: 1675498002}
   m_Layer: 0
   m_Name: FPSUtil
   m_TagString: Untagged
@@ -988,9 +897,37 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 206157501}
-  - {fileID: 1436220077}
+  m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1675498002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1675498000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2aa96b5e234372a43ac9537a6601aff8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _fontSize: 32
+  _normalColor: {r: 1, g: 1, b: 1, a: 1}
+  _lowColor: {r: 1, g: 0, b: 0, a: 1}
+  _lowFpsMultiplier: 0.95
+  ShowFPS: 1
+--- !u!114 &1675498003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1675498000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74f26fd227553b949bf6c72176508192, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  TargetFPS: 60

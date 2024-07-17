@@ -5,12 +5,25 @@ namespace Abecombe.FPSUtil
     public class FPSSetter : MonoBehaviour
     {
         [SerializeField]
-        private int _targetFPS = 60;
+        public int TargetFPS = 60;
 
-        private void Start()
+        private int _previousTargetFPS;
+
+        private void OnEnable()
         {
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = _targetFPS;
+
+            Application.targetFrameRate = TargetFPS;
+            _previousTargetFPS = TargetFPS;
+        }
+
+        private void Update()
+        {
+            TargetFPS = Mathf.Max(15, TargetFPS);
+            if (TargetFPS == _previousTargetFPS) return;
+
+            Application.targetFrameRate = TargetFPS;
+            _previousTargetFPS = TargetFPS;
         }
     }
 }

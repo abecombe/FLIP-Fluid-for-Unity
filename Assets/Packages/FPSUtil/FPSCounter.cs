@@ -7,9 +7,23 @@ namespace Abecombe.FPSUtil
         [SerializeField] private int _fontSize = 32;
         [SerializeField] private Color _normalColor = Color.white;
         [SerializeField] private Color _lowColor = Color.red;
-        [SerializeField] private float _lowFps = 30.0f;
+        [SerializeField] private float _lowFpsMultiplier = 0.95f;
 
         private float _deltaTime = 0.0f;
+
+        private FPSSetter _fpsSetter;
+
+        public bool ShowFPS = true;
+
+        private void OnEnable()
+        {
+            _fpsSetter = FindObjectOfType<FPSSetter>();
+            if (_fpsSetter == null)
+            {
+                _fpsSetter = gameObject.AddComponent<FPSSetter>();
+            }
+            _fpsSetter.enabled = true;
+        }
 
         private void Update()
         {
@@ -18,6 +32,8 @@ namespace Abecombe.FPSUtil
 
         private void OnGUI()
         {
+            if (!ShowFPS) return;
+
             float msec = _deltaTime / Time.timeScale * 1000.0f;
             float fps = Time.timeScale / _deltaTime;
 
@@ -34,7 +50,7 @@ namespace Abecombe.FPSUtil
                 fontSize = _fontSize,
                 normal =
                 {
-                    textColor = fps >= _lowFps ? _normalColor : _lowColor
+                    textColor = fps >= _fpsSetter?.TargetFPS * _lowFpsMultiplier ? _normalColor : _lowColor
                 }
             };
 
