@@ -600,13 +600,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _quality: 2
   _particleInitRangeMin:
-    x: -9
+    x: -4
     y: -4
-    z: -9
+    z: -4
   _particleInitRangeMax:
-    x: 1
+    x: 4
     y: 9
-    z: 9
+    z: 4
   _flipness: 0.99
   _gravity: {x: 0, y: -9.8, z: 0}
   _viscosity: 0
@@ -621,6 +621,7 @@ MonoBehaviour:
   _rosettaUIRoot: {fileID: 1005516105}
   _toggleUIKey: 9
   _showFps: 1
+  _useVFXGraph: 1
 --- !u!4 &1099404996
 Transform:
   m_ObjectHideFlags: 0

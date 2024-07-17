@@ -1,4 +1,6 @@
-﻿#pragma kernel ParticleToGrid
+﻿#pragma kernel SetMyGridType
+#pragma kernel SetNeighborGridTypes
+#pragma kernel ParticleToGrid
 
 #pragma multi_compile _ USE_LINEAR_KERNEL USE_QUADRATIC_KERNEL
 
@@ -8,6 +10,7 @@ StructuredBuffer<Particle> _ParticleBufferRead;
 
 StructuredBuffer<uint2> _GridParticleIDBufferRead;
 
+StructuredBuffer<uint> _GridTypeBufferRead;
 RWStructuredBuffer<uint> _GridTypeBufferWrite;
 
 RWStructuredBuffer<float3> _GridVelocityBufferWrite;
@@ -24,16 +27,60 @@ static const int grid_range[6] = { -2, 1, -2, 1, -2, 1 };
 #endif
 
 [numthreads(128, 1, 1)]
-void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
+void SetMyGridType(uint3 thread_id : SV_DispatchThreadID)
 {
     RETURN_IF_INVALID(thread_id);
 
     const uint c_id = thread_id.x;
     const int3 c_index = CellIDToCellIndex(c_id);
 
-    // decide grid type
     const uint2 particle_index = _GridParticleIDBufferRead[c_id];
-    _GridTypeBufferWrite[c_id] = particle_index.y - particle_index.x > 0 ? GT_FLUID : GT_AIR;
+    const uint c_type =
+        IsSolidCell(CellIndexToWorldPos(c_index)) ? GT_SOLID :
+        particle_index.y - particle_index.x > 0 ? GT_FLUID :
+        GT_AIR;
+
+    uint grid_types = 0;
+    SetMyType(grid_types, c_type);
+
+    _GridTypeBufferWrite[c_id] = grid_types;
+}
+
+[numthreads(128, 1, 1)]
+void SetNeighborGridTypes(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const uint c_my_axis_type = GetMyType(_GridTypeBufferRead[c_id]);
+    const uint c_xp_axis_type = c_index.x == 0 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(-1, 0, 0))]);
+    const uint c_xn_axis_type = c_index.x == _GridSize.x - 1 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(1, 0, 0))]);
+    const uint c_yp_axis_type = c_index.y == 0 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(0, -1, 0))]);
+    const uint c_yn_axis_type = c_index.y == _GridSize.y - 1 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(0, 1, 0))]);
+    const uint c_zp_axis_type = c_index.z == 0 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(0, 0, -1))]);
+    const uint c_zn_axis_type = c_index.z == _GridSize.z - 1 ? GT_SOLID : GetMyType(_GridTypeBufferRead[CellIndexToCellID(c_index + int3(0, 0, 1))]);
+
+    uint grid_types = 0;
+    SetMyType(grid_types, c_my_axis_type);
+    SetXPrevType(grid_types, c_xp_axis_type);
+    SetXNextType(grid_types, c_xn_axis_type);
+    SetYPrevType(grid_types, c_yp_axis_type);
+    SetYNextType(grid_types, c_yn_axis_type);
+    SetZPrevType(grid_types, c_zp_axis_type);
+    SetZNextType(grid_types, c_zn_axis_type);
+
+    _GridTypeBufferWrite[c_id] = grid_types;
+}
+
+[numthreads(128, 1, 1)]
+void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
 
     const float3 position = CellIndexToWorldPos(c_index);
     const float3 position_vx = position + float3(-0.5f * _GridSpacing, 0.0f, 0.0f);
@@ -60,7 +107,7 @@ void ParticleToGrid(uint3 thread_id : SV_DispatchThreadID)
 
     float3 velocity = sum_weight > 0 ? sum_velocity / max(sum_weight, FLT_MIN) : 0.0f;
 
-    EnforceBoundaryCondition(velocity, c_index);
+    EnforceBoundaryCondition(velocity, _GridTypeBufferRead[c_id]);
 
     _GridVelocityBufferWrite[c_id] = velocity;
     _GridOriginalVelocityBufferWrite[c_id] = velocity;

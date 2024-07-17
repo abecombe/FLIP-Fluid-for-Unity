@@ -12,9 +12,10 @@ float _DeltaTime;
 #include "../GridHelper.hlsl"
 
 #include "FLIPParticle.hlsl"
-#include "FreeSurface.hlsl"
+#include "GridType.hlsl"
 #include "BoundaryCondition.hlsl"
 #include "KernelFunc.hlsl"
+#include "Obstacle.hlsl"
 
 
 #endif /* CS_SIMULATION_COMMON_HLSL */

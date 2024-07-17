@@ -8,6 +8,7 @@ float3 _RayDirection;
 float4 _MouseForceParameter; // x,y,z: Force w: Range
 
 RWStructuredBuffer<float3> _GridVelocityBufferRW;
+StructuredBuffer<uint> _GridTypeBufferRead;
 
 inline float GetMouseForce(float3 position)
 {
@@ -38,7 +39,7 @@ void AddExternalForce(uint3 thread_id : SV_DispatchThreadID)
     mouse_force *= _MouseForceParameter.xyz;
     velocity += mouse_force * _DeltaTime;
 
-    EnforceBoundaryCondition(velocity, c_index);
+    EnforceBoundaryCondition(velocity, _GridTypeBufferRead[c_id]);
 
     _GridVelocityBufferRW[c_id] = velocity;
 }

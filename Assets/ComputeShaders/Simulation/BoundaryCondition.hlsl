@@ -3,14 +3,22 @@
 
 static const float POSITION_EPSILON = 1e-4;
 
+#include "GridType.hlsl"
+
 inline void ClampPosition(inout float3 position, float3 grid_min, float3 grid_max)
 {
     position = clamp(position, grid_min + POSITION_EPSILON, grid_max - POSITION_EPSILON);
+    const float3 dir_from_center = position;
+    const float dist_from_center = length(dir_from_center);
+    position = normalize(dir_from_center) * min(dist_from_center, 9.9);
 }
 
-inline void EnforceBoundaryCondition(inout float3 velocity, int3 c_index)
+inline void EnforceBoundaryCondition(inout float3 velocity, uint grid_types)
 {
-    velocity = c_index > 0 ? velocity : 0.0f;
+    const bool3 is_solid_cell =
+        (bool3)IsSolidCell(GetMyType(grid_types)) ||
+        bool3(IsSolidCell(GetXPrevType(grid_types)), IsSolidCell(GetYPrevType(grid_types)), IsSolidCell(GetZPrevType(grid_types)));
+    velocity = is_solid_cell ? 0.0f : velocity;
 }
 
 

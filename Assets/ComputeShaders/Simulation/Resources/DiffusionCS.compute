@@ -1,4 +1,6 @@
-﻿#pragma kernel Diffuse
+﻿#pragma kernel SetMyGridAxisType
+#pragma kernel SetNeighborGridAxisTypes
+#pragma kernel Diffuse
 #pragma kernel UpdateVelocity
 
 #include "../Common.hlsl"
@@ -7,11 +9,78 @@ float4 _DiffusionParameter;
 
 StructuredBuffer<uint> _GridTypeBufferRead;
 
+StructuredBuffer<uint3> _GridAxisTypeBufferRead;
+RWStructuredBuffer<uint3> _GridAxisTypeBufferWrite;
+
 StructuredBuffer<float3> _GridVelocityBufferRead;
 RWStructuredBuffer<float3> _GridVelocityBufferWrite;
 
 StructuredBuffer<float3> _GridDiffusionBufferRead;
 RWStructuredBuffer<float3> _GridDiffusionBufferWrite;
+
+[numthreads(128, 1, 1)]
+void SetMyGridAxisType(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const uint grid_types = _GridTypeBufferRead[c_id];
+
+    // decide grid type
+    const uint c_my_type = GetMyType(grid_types);
+    const uint c_xp_type = GetXPrevType(grid_types);
+    const uint c_yp_type = GetYPrevType(grid_types);
+    const uint c_zp_type = GetZPrevType(grid_types);
+
+    uint3 c_axis_type;
+    c_axis_type.x =
+        IsSolidCell(c_my_type) || IsSolidCell(c_xp_type) ? GT_SOLID :
+        IsFluidCell(c_my_type) || IsFluidCell(c_xp_type) ? GT_FLUID :
+        GT_AIR;
+    c_axis_type.y =
+        IsSolidCell(c_my_type) || IsSolidCell(c_yp_type) ? GT_SOLID :
+        IsFluidCell(c_my_type) || IsFluidCell(c_yp_type) ? GT_FLUID :
+        GT_AIR;
+    c_axis_type.z =
+        IsSolidCell(c_my_type) || IsSolidCell(c_zp_type) ? GT_SOLID :
+        IsFluidCell(c_my_type) || IsFluidCell(c_zp_type) ? GT_FLUID :
+        GT_AIR;
+
+    uint3 grid_axis_types = 0;
+    SetMyType(grid_axis_types, c_axis_type);
+
+    _GridAxisTypeBufferWrite[c_id] = grid_axis_types;
+}
+
+[numthreads(128, 1, 1)]
+void SetNeighborGridAxisTypes(uint3 thread_id : SV_DispatchThreadID)
+{
+    RETURN_IF_INVALID(thread_id);
+
+    const uint c_id = thread_id.x;
+    const int3 c_index = CellIDToCellIndex(c_id);
+
+    const uint3 c_my_axis_type = GetMyType(_GridAxisTypeBufferRead[c_id]);
+    const uint3 c_xp_axis_type = c_index.x == 0 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(-1, 0, 0))]);
+    const uint3 c_xn_axis_type = c_index.x == _GridSize.x - 1 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(1, 0, 0))]);
+    const uint3 c_yp_axis_type = c_index.y == 0 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(0, -1, 0))]);
+    const uint3 c_yn_axis_type = c_index.y == _GridSize.y - 1 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(0, 1, 0))]);
+    const uint3 c_zp_axis_type = c_index.z == 0 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(0, 0, -1))]);
+    const uint3 c_zn_axis_type = c_index.z == _GridSize.z - 1 ? (uint3)GT_SOLID : GetMyType(_GridAxisTypeBufferRead[CellIndexToCellID(c_index + int3(0, 0, 1))]);
+
+    uint3 grid_axis_types = 0;
+    SetMyType(grid_axis_types, c_my_axis_type);
+    SetXPrevType(grid_axis_types, c_xp_axis_type);
+    SetXNextType(grid_axis_types, c_xn_axis_type);
+    SetYPrevType(grid_axis_types, c_yp_axis_type);
+    SetYNextType(grid_axis_types, c_yn_axis_type);
+    SetZPrevType(grid_axis_types, c_zp_axis_type);
+    SetZNextType(grid_axis_types, c_zn_axis_type);
+
+    _GridAxisTypeBufferWrite[c_id] = grid_axis_types;
+}
 
 [numthreads(128, 1, 1)]
 void Diffuse(uint3 thread_id : SV_DispatchThreadID)
@@ -21,29 +90,28 @@ void Diffuse(uint3 thread_id : SV_DispatchThreadID)
     const uint c_id = thread_id.x;
     const int3 c_index = CellIDToCellIndex(c_id);
 
-    // diffuse using Jacobi iterations
-    const int3 c_index_xn = c_index + int3(1, 0, 0);
-    const int3 c_index_yn = c_index + int3(0, 1, 0);
-    const int3 c_index_zn = c_index + int3(0, 0, 1);
+    const uint3 grid_axis_types = _GridAxisTypeBufferRead[c_id];
 
-    const uint c_id_xp = CellIndexToCellID(c_index + int3(-1, 0, 0));
-    const uint c_id_xn = CellIndexToCellID(c_index_xn);
-    const uint c_id_yp = CellIndexToCellID(c_index + int3(0, -1, 0));
-    const uint c_id_yn = CellIndexToCellID(c_index_yn);
-    const uint c_id_zp = CellIndexToCellID(c_index + int3(0, 0, -1));
-    const uint c_id_zn = CellIndexToCellID(c_index_zn);
+    // diffuse using Jacobi iterations
+    const float3 diff = _GridDiffusionBufferRead[c_id];
+    const float3 diff_xp = IsFluidCell(GetXPrevType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(-1, 0, 0))] : diff;
+    const float3 diff_xn = IsFluidCell(GetXNextType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(1, 0, 0))] : diff;
+    const float3 diff_yp = IsFluidCell(GetYPrevType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(0, -1, 0))] : diff;
+    const float3 diff_yn = IsFluidCell(GetYNextType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(0, 1, 0))] : diff;
+    const float3 diff_zp = IsFluidCell(GetZPrevType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(0, 0, -1))] : diff;
+    const float3 diff_zn = IsFluidCell(GetZNextType(grid_axis_types)) ? _GridDiffusionBufferRead[CellIndexToCellID(c_index + int3(0, 0, 1))] : diff;
 
     float3 velocity = 0;
 
-    velocity += _DiffusionParameter.x * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xp] == GT_FLUID ? c_id_xp : c_id];
-    velocity += _DiffusionParameter.x * (c_index_xn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_xn] == GT_FLUID ? c_id_xn : c_id] : 0.0f);
-    velocity += _DiffusionParameter.y * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_yp] == GT_FLUID ? c_id_yp : c_id];
-    velocity += _DiffusionParameter.y * (c_index_yn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_yn] == GT_FLUID ? c_id_yn : c_id] : 0.0f);
-    velocity += _DiffusionParameter.z * _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zp] == GT_FLUID ? c_id_zp : c_id];
-    velocity += _DiffusionParameter.z * (c_index_zn < _GridSize ? _GridDiffusionBufferRead[_GridTypeBufferRead[c_id_zn] == GT_FLUID ? c_id_zn : c_id] : 0.0f);
+    velocity += _DiffusionParameter.x * diff_xp;
+    velocity += _DiffusionParameter.x * diff_xn;
+    velocity += _DiffusionParameter.y * diff_yp;
+    velocity += _DiffusionParameter.y * diff_yn;
+    velocity += _DiffusionParameter.z * diff_zp;
+    velocity += _DiffusionParameter.z * diff_zn;
     velocity += _DiffusionParameter.w * _GridVelocityBufferRead[c_id];
 
-    EnforceBoundaryCondition(velocity, c_index);
+    EnforceBoundaryCondition(velocity, _GridTypeBufferRead[c_id]);
 
     _GridDiffusionBufferWrite[c_id] = velocity;
 }
@@ -58,7 +126,7 @@ void UpdateVelocity(uint3 thread_id : SV_DispatchThreadID)
 
     float3 velocity = _GridDiffusionBufferRead[c_id];
 
-    EnforceBoundaryCondition(velocity, c_index);
+    EnforceBoundaryCondition(velocity, _GridTypeBufferRead[c_id]);
 
     _GridVelocityBufferWrite[c_id] = velocity;
 }
