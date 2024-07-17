@@ -17,6 +17,12 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         public float3 Velocity;
     }
 
+    private enum SimulationArea
+    {
+        Cube,
+        Sphere
+    }
+
     private enum KernelFunction
     {
         Linear,
@@ -45,6 +51,8 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private const int NumParticleInACell = 8;
     private int NumParticles => ParticleInitGridSize.x * ParticleInitGridSize.y * ParticleInitGridSize.z * NumParticleInACell;
     private int NumGrids => GridSize.x * GridSize.y * GridSize.z;
+
+    [SerializeField] private SimulationArea _simulationArea = SimulationArea.Cube;
 
     // Quality
     [SerializeField] private Quality _quality = Quality.Medium;
@@ -125,6 +133,10 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     private Material _particleInstanceMaterial;
     private MaterialPropertyBlock _mpb;
     private GPUBufferWithArgs _particleRenderingBufferWithArgs = new();
+    [SerializeField] private Mesh _cubeMesh;
+    [SerializeField] private Mesh _shapeMesh;
+    [SerializeField] private Material _cubeSimulationAreaMaterial;
+    [SerializeField] private Material _shapeSimulationAreaMaterial;
 
     // FPS Settings
     private int _frameSimulationIteration = 1;
@@ -161,6 +173,25 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         _particleAdvectionCs = new GPUComputeShader("ParticleAdvectionCS");
         _densityProjectionCs = new GPUComputeShader("DensityProjectionCS");
         _renderingCs = new GPUComputeShader("RenderingCS");
+    }
+
+    private void InitSimulationArea()
+    {
+        switch (_simulationArea)
+        {
+            case SimulationArea.Cube:
+                _particleInitRangeMin = new float3(-9f, -4f, -9f);
+                _particleInitRangeMax = new float3(1f, 9f, 9f);
+                GetComponent<MeshFilter>().mesh = _cubeMesh;
+                GetComponent<MeshRenderer>().sharedMaterial = _cubeSimulationAreaMaterial;
+                break;
+            case SimulationArea.Sphere:
+                _particleInitRangeMin = new float3(-4.2f, -7f, -4.2f);
+                _particleInitRangeMax = new float3(4.2f, 7f, 4.2f);
+                GetComponent<MeshFilter>().mesh = _shapeMesh;
+                GetComponent<MeshRenderer>().sharedMaterial = _shapeSimulationAreaMaterial;
+                break;
+        }
     }
 
     private void InitParticleBuffers()
@@ -246,6 +277,18 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
             case KernelFunction.Quadratic:
                 cs.DisableKeyword("USE_LINEAR_KERNEL");
                 cs.EnableKeyword("USE_QUADRATIC_KERNEL");
+                break;
+        }
+
+        switch (_simulationArea)
+        {
+            case SimulationArea.Cube:
+                cs.EnableKeyword("IS_CUBE_AREA_SIMULATION");
+                cs.DisableKeyword("IS_SPHERE_AREA_SIMULATION");
+                break;
+            case SimulationArea.Sphere:
+                cs.DisableKeyword("IS_CUBE_AREA_SIMULATION");
+                cs.EnableKeyword("IS_SPHERE_AREA_SIMULATION");
                 break;
         }
     }
@@ -582,6 +625,13 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
             $"Settings ( press {_toggleUIKey.ToString()} to open / close )",
             UI.Indent(UI.Box(UI.Indent(
                 UI.Space().SetHeight(5f),
+                UI.Field("Simulation Area", () => _simulationArea)
+                    .RegisterValueChangeCallback(() =>
+                    {
+                        InitSimulationArea();
+                        InitGPUBuffers();
+                    }),
+                UI.Space().SetHeight(10f),
                 UI.Field("Quality", () => _quality)
                     .RegisterValueChangeCallback(InitGPUBuffers),
                 UI.Indent(
@@ -646,6 +696,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     {
         InitFPS();
 
+        InitSimulationArea();
         InitComputeShaders();
         InitGPUBuffers();
     }

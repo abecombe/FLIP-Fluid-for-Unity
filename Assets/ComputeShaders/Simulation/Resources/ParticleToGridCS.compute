@@ -3,6 +3,7 @@
 #pragma kernel ParticleToGrid
 
 #pragma multi_compile _ USE_LINEAR_KERNEL USE_QUADRATIC_KERNEL
+#pragma multi_compile _ IS_CUBE_AREA_SIMULATION IS_SPHERE_AREA_SIMULATION
 
 #include "../Common.hlsl"
 

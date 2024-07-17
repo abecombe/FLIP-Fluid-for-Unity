@@ -2,6 +2,7 @@
 
 #pragma multi_compile _ USE_RK1 USE_RK2 USE_RK3
 #pragma multi_compile _ USE_LINEAR_KERNEL USE_QUADRATIC_KERNEL
+#pragma multi_compile _ IS_CUBE_AREA_SIMULATION IS_SPHERE_AREA_SIMULATION
 
 #include "../Common.hlsl"
 #include "../GridParamsSampling.hlsl"
@@ -48,6 +49,7 @@ void Advect(uint3 thread_id : SV_DispatchThreadID)
     p.position += velocity * _DeltaTime;
 
     ClampPosition(p.position, _GridMin, _GridMax);
+    ClampPositionByObstacles(p.position);
 
     _ParticleBufferRW[p_id] = p;
 }

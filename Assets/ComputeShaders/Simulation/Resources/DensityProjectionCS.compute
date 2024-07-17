@@ -6,6 +6,7 @@
 #pragma kernel CalcPositionModify
 #pragma kernel UpdatePosition
 
+#pragma multi_compile _ IS_CUBE_AREA_SIMULATION IS_SPHERE_AREA_SIMULATION
 #define USE_LINEAR_KERNEL
 
 #include "../Common.hlsl"
@@ -243,6 +244,7 @@ void UpdatePosition(uint3 thread_id : SV_DispatchThreadID)
     p.position += SampleGridParam(p.position, _GridPositionModifyBufferRead);
 
     ClampPosition(p.position, _GridMin, _GridMax);
+    ClampPositionByObstacles(p.position);
 
     _ParticleBufferRW[p_id] = p;
 }
