@@ -10,7 +10,7 @@ inline void ClampPosition(inout float3 position, float3 grid_min, float3 grid_ma
     position = clamp(position, grid_min + POSITION_EPSILON, grid_max - POSITION_EPSILON);
     const float3 dir_from_center = position;
     const float dist_from_center = length(dir_from_center);
-    position = normalize(dir_from_center) * min(dist_from_center, 9.9);
+    position = normalize(dir_from_center) * min(dist_from_center, 9.95);
 }
 
 inline void EnforceBoundaryCondition(inout float3 velocity, uint grid_types)

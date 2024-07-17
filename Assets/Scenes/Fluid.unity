@@ -553,14 +553,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb2ca9a5c0b9d3843b98d806231fb0c1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _quality: 2
+  _quality: 3
   _particleInitRangeMin:
     x: -4
-    y: -4
+    y: -7
     z: -4
   _particleInitRangeMax:
     x: 4
-    y: 9
+    y: 7
     z: 4
   _flipness: 0.99
   _gravity: {x: 0, y: -9.8, z: 0}
@@ -575,7 +575,7 @@ MonoBehaviour:
   _densityProjectionJacobiIteration: 30
   _rosettaUIRoot: {fileID: 1005516105}
   _toggleUIKey: 9
-  _useVFXGraph: 1
+  _useVFXGraph: 0
 --- !u!4 &1099404996
 Transform:
   m_ObjectHideFlags: 0
@@ -640,7 +640,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1099404994}
-  m_Mesh: {fileID: 4300000, guid: 667845d86b47f9f4989dcc72385aa212, type: 2}
+  m_Mesh: {fileID: 4300000, guid: 1f34635ecd23da54084ed0554cf6470a, type: 2}
 --- !u!1 &1373353384
 GameObject:
   m_ObjectHideFlags: 0

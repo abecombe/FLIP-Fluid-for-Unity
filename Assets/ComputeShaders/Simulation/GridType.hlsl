@@ -4,9 +4,9 @@
 #include "../Bit.hlsl"
 
 // GridType
-static const uint GT_AIR = 0;
+static const uint GT_SOLID = 0;
 static const uint GT_FLUID = 1;
-static const uint GT_SOLID = 2;
+static const uint GT_AIR = 2;
 
 // Mask
 static const uint MyTypeMask         = 0x00000003u;
@@ -138,30 +138,30 @@ inline uint3 GetZNextType(uint3 grid_types)
     return GET_VALUE(grid_types, ZNextTypeMask, ZNextTypeMaskShift);
 }
 
-inline bool IsAirCell(uint grid_type)
+inline bool IsSolidCell(uint grid_type)
 {
-    return grid_type == GT_AIR;
+    return grid_type == GT_SOLID;
 }
 inline bool IsFluidCell(uint grid_type)
 {
     return grid_type == GT_FLUID;
 }
-inline bool IsSolidCell(uint grid_type)
+inline bool IsAirCell(uint grid_type)
 {
-    return grid_type == GT_SOLID;
+    return grid_type == GT_AIR;
 }
 
-inline bool3 IsAirCell(uint3 grid_type)
+inline bool3 IsSolidCell(uint3 grid_type)
 {
-    return grid_type == (uint3)GT_AIR;
+    return grid_type == (uint3)GT_SOLID;
 }
 inline bool3 IsFluidCell(uint3 grid_type)
 {
     return grid_type == (uint3)GT_FLUID;
 }
-inline bool3 IsSolidCell(uint3 grid_type)
+inline bool3 IsAirCell(uint3 grid_type)
 {
-    return grid_type == (uint3)GT_SOLID;
+    return grid_type == (uint3)GT_AIR;
 }
 
 

@@ -43,9 +43,9 @@ inline float3 GridPosToWorldPos(float3 position)
 }
 
 #define FOR_EACH_NEIGHBOR_CELL_START(C_INDEX, NC_INDEX, NC_ID, RANGE) {\
-for (int i = max((int)C_INDEX.x + RANGE[0], 0); i <= min((int)C_INDEX.x + RANGE[1], _GridSize.x - 1); ++i)\
-for (int j = max((int)C_INDEX.y + RANGE[2], 0); j <= min((int)C_INDEX.y + RANGE[3], _GridSize.y - 1); ++j)\
-for (int k = max((int)C_INDEX.z + RANGE[4], 0); k <= min((int)C_INDEX.z + RANGE[5], _GridSize.z - 1); ++k) {\
+for (int i = (int)C_INDEX.x + RANGE[0]; i <= (int)C_INDEX.x + RANGE[1]; ++i)\
+for (int j = (int)C_INDEX.y + RANGE[2]; j <= (int)C_INDEX.y + RANGE[3]; ++j)\
+for (int k = (int)C_INDEX.z + RANGE[4]; k <= (int)C_INDEX.z + RANGE[5]; ++k) {\
     const int3 NC_INDEX = int3(i, j, k);\
     const uint NC_ID = CellIndexToCellID(NC_INDEX);\
 
