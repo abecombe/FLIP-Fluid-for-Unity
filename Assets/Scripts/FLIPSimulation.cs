@@ -180,14 +180,16 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         switch (_simulationArea)
         {
             case SimulationArea.Cube:
-                _particleInitRangeMin = new float3(-9f, -4f, -9f);
-                _particleInitRangeMax = new float3(1f, 9f, 9f);
+                this.gameObject.transform.localScale = new Vector3(20f, 20f, 20f);
+                _particleInitRangeMin = new float3(-9f, -5f, -8f);
+                _particleInitRangeMax = new float3(1f, 8f, 8f);
                 GetComponent<MeshFilter>().mesh = _cubeMesh;
                 GetComponent<MeshRenderer>().sharedMaterial = _cubeSimulationAreaMaterial;
                 break;
             case SimulationArea.Sphere:
-                _particleInitRangeMin = new float3(-4.2f, -7f, -4.2f);
-                _particleInitRangeMax = new float3(4.2f, 7f, 4.2f);
+                this.gameObject.transform.localScale = new Vector3(24f, 24f, 24f);
+                _particleInitRangeMin = new float3(-5f, -7f, -5f);
+                _particleInitRangeMax = new float3(5f, 9f, 5f);
                 GetComponent<MeshFilter>().mesh = _shapeMesh;
                 GetComponent<MeshRenderer>().sharedMaterial = _shapeSimulationAreaMaterial;
                 break;

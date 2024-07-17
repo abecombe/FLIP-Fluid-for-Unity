@@ -10,7 +10,7 @@ inline bool IsSolidCell(float3 c_pos)
 #if defined(IS_CUBE_AREA_SIMULATION)
     return false;
 #elif defined(IS_SPHERE_AREA_SIMULATION)
-    return length(c_pos) > 10.0;
+    return length(c_pos) > 12.0;
 #endif
 }
 
@@ -21,7 +21,7 @@ inline void ClampPositionByObstacles(inout float3 position)
 #elif defined(IS_SPHERE_AREA_SIMULATION)
     const float3 dir_from_center = position;
     const float dist_from_center = length(dir_from_center);
-    position = normalize(dir_from_center) * min(dist_from_center, 9.95);
+    position = normalize(dir_from_center) * min(dist_from_center, 11.9);
 #endif
 }
 

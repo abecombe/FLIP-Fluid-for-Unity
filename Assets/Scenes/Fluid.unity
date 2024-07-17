@@ -563,7 +563,7 @@ MonoBehaviour:
     x: 4
     y: 7
     z: 4
-  _flipness: 0.99
+  _flipness: 0.96
   _gravity: {x: 0, y: -9.8, z: 0}
   _viscosity: 0
   _mouseForce: 1.32

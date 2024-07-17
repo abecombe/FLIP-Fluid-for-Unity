@@ -2,7 +2,7 @@
 
 public class OrbitCamera : MonoBehaviour
 {
-    public float Distance { get; private set; } = 20f;
+    public float Distance { get; private set; } = 35f;
 
     [SerializeField]
     private float _rotationSensitivity = 5f;
@@ -13,7 +13,7 @@ public class OrbitCamera : MonoBehaviour
     [SerializeField]
     private float _zoomMiddleClickSensitivity = 1f;
 
-    private float _lookAtHeight = 1f;
+    private float _lookAtHeight = 0f;
     private float _azimuthalAngle = 45f;
     private float _polarAngle = 75f;
 
