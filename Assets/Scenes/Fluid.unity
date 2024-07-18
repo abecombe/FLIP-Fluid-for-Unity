@@ -577,7 +577,7 @@ MonoBehaviour:
   _rosettaUIRoot: {fileID: 1005516105}
   _toggleUIKey: 9
   _useVFXGraph: 0
-  _cubeMesh: {fileID: 4300000, guid: 667845d86b47f9f4989dcc72385aa212, type: 2}
+  _cubeMesh: {fileID: 4300000, guid: f0b0f7d12f8a7864fa8f10bf483aa030, type: 2}
   _shapeMesh: {fileID: 4300000, guid: 254e0d42d0db2e341a2ba4f5b00ff9d5, type: 2}
   _cubeSimulationAreaMaterial: {fileID: 2100000, guid: ce15bcaea4030ee47843b9fb58e03254,
     type: 2}
@@ -647,7 +647,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1099404994}
-  m_Mesh: {fileID: 4300000, guid: 667845d86b47f9f4989dcc72385aa212, type: 2}
+  m_Mesh: {fileID: 0}
 --- !u!1 &1373353384
 GameObject:
   m_ObjectHideFlags: 0
