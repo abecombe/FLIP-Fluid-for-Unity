@@ -21,14 +21,14 @@ public static class CustomGraphics
         );
     }
 
-    public static void DrawProcedural(Material material, MaterialPropertyBlock mpb, int count, int layer)
+    public static void DrawProceduralIndirect(Material material, MaterialPropertyBlock mpb, GraphicsBuffer bufferWithArgs, int layer)
     {
-        Graphics.DrawProcedural(
+        Graphics.DrawProceduralIndirect(
             material,
             new Bounds(Vector3.zero, Vector3.one * 1000f),
             MeshTopology.Points,
-            count,
-            1,
+            bufferWithArgs,
+            0,
             null,
             mpb,
             ShadowCastingMode.Off,

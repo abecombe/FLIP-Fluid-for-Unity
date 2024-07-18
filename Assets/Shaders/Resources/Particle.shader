@@ -4,8 +4,6 @@ Shader "ParticleRendering/ParticleInstance"
 
     #include "UnityCG.cginc"
 
-    static const float quad_mesh_radius = 0.5f;
-
     StructuredBuffer<float4> _ParticleRenderingBuffer;
 
     float _Radius;
@@ -17,7 +15,12 @@ Shader "ParticleRendering/ParticleInstance"
     float4 _FastColor;
     float _FresnelPower;
 
-    struct v2f
+    struct v2g
+    {
+        float4 particle_data : TEXCOORD0;
+    };
+
+    struct g2f
     {
         float4 vertex : SV_POSITION;
         float3 camera_space_pos : TEXCOORD0;
@@ -34,13 +37,30 @@ Shader "ParticleRendering/ParticleInstance"
     // --------------------------------------------------------------------
     // Vertex Shader
     // --------------------------------------------------------------------
-    v2f Vertex(appdata_full v, uint id : SV_InstanceID)
+    v2g Vertex(uint id : SV_VertexID)
     {
-        v2f o;
+        v2g o;
 
-        const float3 world_space_sphere_center_pos = _ParticleRenderingBuffer[id].xyz;
+        o.particle_data = _ParticleRenderingBuffer[id];
+
+        return o;
+    }
+
+    // --------------------------------------------------------------------
+    // Geometry Shader
+    // --------------------------------------------------------------------
+    static const float quad_mesh_radius = 1.0f;
+    static const float4 quad_mesh_vertices[4] = {
+        float4(-1, -1, 0, 1),
+        float4(-1, 1, 0, 1),
+        float4(1, -1, 0, 1),
+        float4(1, 1, 0, 1),
+    };
+    [maxvertexcount(4)]
+    void Geometry(point v2g p[1], inout TriangleStream<g2f> stream)
+    {
+        const float3 world_space_sphere_center_pos = p[0].particle_data.xyz;
         const float sphere_radius = _Radius;
-        o.sphere_radius = sphere_radius;
 
         const float3 world_space_camera_pos = _WorldSpaceCameraPos;
         const float3 view_vec = world_space_camera_pos - world_space_sphere_center_pos;
@@ -56,6 +76,7 @@ Shader "ParticleRendering/ParticleInstance"
         const float nessesary_radius = sphere_cam_dist * sphere_radius / sqrt(sphere_cam_dist * sphere_cam_dist - sphere_radius * sphere_radius);
         const float scale = nessesary_radius / quad_mesh_radius;
 
+        // Quadの頂点のワールド座標を導出するための行列を計算
         float4x4 mat = 0;
         mat._m00_m10_m20 = x_axis;
         mat._m01_m11_m21 = y_axis;
@@ -65,29 +86,39 @@ Shader "ParticleRendering/ParticleInstance"
         mat._m03_m13_m23 = world_space_sphere_center_pos;
         mat._m33 = 1;
 
-        // Quadの頂点のワールド座標を計算
-        const float3 world_space_pos = mul(mat, v.vertex).xyz;
-        o.camera_space_pos = mul(UNITY_MATRIX_V, float4(world_space_pos, 1)).xyz;
-        o.camera_space_sphere_center_pos = mul(UNITY_MATRIX_V, float4(world_space_sphere_center_pos, 1)).xyz;
-
         // ZTestで淘汰されないために、vertexは球の最前部に移動させる
         const float scale_multiplier_for_vertex = (sphere_cam_dist - sphere_radius) / sphere_cam_dist;
-        mat._m00_m10_m20 *= scale_multiplier_for_vertex;
-        mat._m01_m11_m21 *= scale_multiplier_for_vertex;
-        mat._m03_m13_m23 += view_vec * sphere_radius / sphere_cam_dist;
+        float4x4 mat_for_vertex = mat;
+        mat_for_vertex._m00_m10_m20 *= scale_multiplier_for_vertex;
+        mat_for_vertex._m01_m11_m21 *= scale_multiplier_for_vertex;
+        mat_for_vertex._m03_m13_m23 += view_vec * sphere_radius / sphere_cam_dist;
 
-        o.vertex = mul(UNITY_MATRIX_VP, float4(mul(mat, v.vertex).xyz, 1));
+        const float remap_speed = Remap(p[0].particle_data.w, _VelocityRange.x, _VelocityRange.y, 0, 1);
+        const float4 color = lerp(_SlowColor, _FastColor, remap_speed);
 
-        const float remap_speed = Remap(_ParticleRenderingBuffer[id].w, _VelocityRange.x, _VelocityRange.y, 0, 1);
-        o.color = lerp(_SlowColor, _FastColor, remap_speed);
+        for (int i = 0; i < 4; i++)
+        {
+            g2f o;
 
-        return o;
+            o.sphere_radius = sphere_radius;
+
+            const float3 world_space_pos = mul(mat, quad_mesh_vertices[i]).xyz;
+            o.camera_space_pos = mul(UNITY_MATRIX_V, float4(world_space_pos, 1)).xyz;
+            o.camera_space_sphere_center_pos = mul(UNITY_MATRIX_V, float4(world_space_sphere_center_pos, 1)).xyz;
+
+            o.vertex = mul(UNITY_MATRIX_VP, float4(mul(mat_for_vertex, quad_mesh_vertices[i]).xyz, 1));
+
+            o.color = color;
+
+            stream.Append(o);
+        }
+        stream.RestartStrip();
     }
 
     // --------------------------------------------------------------------
     // Fragment Shader
     // --------------------------------------------------------------------
-    float4 Fragment(v2f i, out float depth_test : SV_DepthLessEqual) : SV_Target
+    float4 Fragment(g2f i, out float depth_test : SV_DepthLessEqual) : SV_Target
     {
         // カメラ空間での球と直線の交点から、深度を計算
         const float3 m = normalize(i.camera_space_pos);
@@ -145,6 +176,7 @@ Shader "ParticleRendering/ParticleInstance"
             CGPROGRAM
             #pragma target   5.0
             #pragma vertex   Vertex
+            #pragma geometry Geometry
             #pragma fragment Fragment
             ENDCG
         }

@@ -129,7 +129,6 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
     [SerializeField] private bool _useVFXGraph = true;
     private VisualEffect _vfx;
     private Volume _volume;
-    private Mesh _quadMesh;
     private Material _particleInstanceMaterial;
     private MaterialPropertyBlock _mpb;
     private GPUBufferWithArgs _particleRenderingBufferWithArgs = new();
@@ -213,8 +212,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
 
         // init rendering
         _particleInstanceMaterial = new Material(Shader.Find("ParticleRendering/ParticleInstance"));
-        _quadMesh = Resources.GetBuiltinResource<Mesh>("Quad.fbx");
-        _particleRenderingBufferWithArgs.Init(_quadMesh.GetIndexCount(0), (uint)_particleRenderingBuffer.Size);
+        _particleRenderingBufferWithArgs.Init((uint)_particleRenderingBuffer.Size, 1);
         _mpb = new MaterialPropertyBlock();
         _mpb.SetBuffer("_ParticleRenderingBuffer", _particleRenderingBuffer);
         _mpb.SetFloat("_Radius", ParticleRadius);
@@ -589,7 +587,7 @@ public class FLIPSimulation : MonoBehaviour, IDisposable
         {
             _vfx.enabled = false;
             _volume.enabled = false;
-            CustomGraphics.DrawMeshInstancedIndirect(_quadMesh, _particleInstanceMaterial, _mpb, _particleRenderingBufferWithArgs, LayerMask.NameToLayer("Default"));
+            CustomGraphics.DrawProceduralIndirect(_particleInstanceMaterial, _mpb, _particleRenderingBufferWithArgs, LayerMask.NameToLayer("Default"));
         }
     }
     #endregion
